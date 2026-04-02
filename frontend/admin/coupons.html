@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP Admin — Coupons</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="./css/admin.css">
+  <style>
+    .admin-layout{display:flex!important}
+    .admin-sidebar{position:fixed!important;left:0!important;top:0!important;width:220px!important;height:100vh!important;z-index:500!important;background:var(--bg-card)!important;border-right:1px solid var(--border)!important;overflow-y:auto!important;display:flex!important;flex-direction:column!important}
+    .admin-main{margin-left:220px!important;flex:1!important;min-width:0!important;padding:1.75rem!important;min-height:100vh!important;background:var(--bg)!important}
+    @media(max-width:900px){.admin-sidebar{transform:translateX(-100%)!important}.admin-sidebar.open{transform:translateX(0)!important}.admin-main{margin-left:0!important;padding:1rem!important}}
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="admin-logo">🛍 SHOP Admin</div>
+    <ul class="admin-nav">
+      <li><a href="/admin/index.html">📊 Dashboard</a></li>
+      <li><a href="/admin/products.html">📦 Products</a></li>
+      <li><a href="/admin/orders.html">🛒 Orders</a></li>
+      <li><a href="/admin/users.html">👥 Users</a></li>
+      <li><a href="/admin/news.html">📰 News</a></li>
+      <li><a href="/admin/coupons.html" class="active">🎟 Coupons</a></li>
+      <li><a href="/index.html">🌐 View Site</a></li>
+      <li><a href="#" id="admin-logout">🚪 Logout</a></li>
+    </ul>
+  </aside>
+  <main class="admin-main">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="admin-hamburger" id="admin-hamburger">☰</button>
+        <h1 class="admin-title">🎟 Kuponlar</h1>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="theme-toggle" id="theme-toggle">🌙</button>
+        <button class="btn btn-primary" id="add-coupon-btn">+ Qo'shish</button>
+      </div>
+    </div>
+
+    <div id="coupon-form-wrap" style="display:none;margin-bottom:1.5rem">
+      <div class="admin-form-card">
+        <h3 style="margin-bottom:1.25rem;font-weight:700">Kupon qo'shish</h3>
+        <form id="coupon-form">
+          <input type="hidden" id="coupon-id">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Kod *</label><input type="text" id="c-code" class="form-control" required placeholder="SAVE10" style="text-transform:uppercase"></div>
+            <div class="form-group"><label class="form-label">Chegirma (%) *</label><input type="number" id="c-discount" class="form-control" min="1" max="100" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Max foydalanish</label><input type="number" id="c-maxuses" class="form-control" min="1" value="100"></div>
+            <div class="form-group"><label class="form-label">Muddati</label><input type="datetime-local" id="c-expires" class="form-control"></div>
+          </div>
+          <div style="display:flex;gap:.75rem">
+            <button type="submit" class="btn btn-primary">💾 Saqlash</button>
+            <button type="button" class="btn btn-ghost" id="cancel-coupon-btn">Bekor qilish</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Kod</th><th>Chegirma</th><th>Ishlatilgan / Max</th><th>Muddati</th><th>Holat</th><th>Amallar</th></tr></thead>
+        <tbody id="coupons-tbody">
+          <tr><td colspan="6" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  Theme.init(); if (!Auth.requireAdmin()) {}
+  document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-hamburger').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); });
+  document.getElementById('sidebar-overlay').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.remove('open'); this.classList.remove('open'); });
+
+  if (new URLSearchParams(window.location.search).get('action') === 'add') document.getElementById('coupon-form-wrap').style.display = 'block';
+
+  async function loadCoupons() {
+    try {
+      var data = await api.get('/admin/coupons');
+      var tbody = document.getElementById('coupons-tbody');
+      if (!data.coupons.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">Kupon yo\'q</td></tr>'; return; }
+      tbody.innerHTML = data.coupons.map(function(c) {
+        return '<tr>' +
+          '<td><code style="font-weight:800;color:var(--primary);font-size:.9rem">' + c.code + '</code></td>' +
+          '<td><span class="badge badge-sale">' + c.discount + '% off</span></td>' +
+          '<td>' + c.usedCount + ' / ' + c.maxUses + '</td>' +
+          '<td>' + (c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('uz-UZ') : '∞') + '</td>' +
+          '<td>' + (c.isActive ? '<span style="color:var(--accent);font-weight:600">✅ Faol</span>' : '<span style="color:var(--secondary);font-weight:600">❌ Nofaol</span>') + '</td>' +
+          '<td style="white-space:nowrap">' +
+          '<button class="btn btn-sm ' + (c.isActive ? 'btn-ghost' : 'btn-primary') + ' toggle-btn" data-id="' + c._id + '" data-active="' + c.isActive + '" style="margin-right:.25rem">' + (c.isActive ? 'O\'chirish' : 'Yoqish') + '</button>' +
+          '<button class="btn btn-sm btn-danger del-coupon-btn" data-id="' + c._id + '">🗑</button>' +
+          '</td></tr>';
+      }).join('');
+      document.querySelectorAll('.toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var isActive = this.dataset.active === 'true';
+          try { await api.put('/admin/coupons/' + this.dataset.id, { isActive: !isActive }); loadCoupons(); } catch(e) { Toast.error(e.message); }
+        });
+      });
+      document.querySelectorAll('.del-coupon-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          if (!confirm('O\'chirishni tasdiqlaysizmi?')) return;
+          try { await api.delete('/admin/coupons/' + this.dataset.id); Toast.success('O\'chirildi'); loadCoupons(); } catch(e) { Toast.error(e.message); }
+        });
+      });
+    } catch(e) { Toast.error(e.message); }
+  }
+
+  document.getElementById('add-coupon-btn').addEventListener('click', function() { document.getElementById('coupon-form').reset(); document.getElementById('coupon-id').value = ''; document.getElementById('coupon-form-wrap').style.display = 'block'; });
+  document.getElementById('cancel-coupon-btn').addEventListener('click', function() { document.getElementById('coupon-form-wrap').style.display = 'none'; });
+  document.getElementById('coupon-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var payload = {
+      code: document.getElementById('c-code').value.toUpperCase(),
+      discount: parseInt(document.getElementById('c-discount').value),
+      maxUses: parseInt(document.getElementById('c-maxuses').value),
+      expiresAt: document.getElementById('c-expires').value || null
+    };
+    try {
+      await api.post('/admin/coupons', payload);
+      Toast.success('Kupon qo\'shildi!');
+      document.getElementById('coupon-form-wrap').style.display = 'none';
+      loadCoupons();
+    } catch(e) { Toast.error(e.message); }
+  });
+  loadCoupons();
+</script>
+</body>
+</html>

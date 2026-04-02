@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP Admin — Orders</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="./css/admin.css">
+  <style>
+    .admin-layout{display:flex!important}
+    .admin-sidebar{position:fixed!important;left:0!important;top:0!important;width:220px!important;height:100vh!important;z-index:500!important;background:var(--bg-card)!important;border-right:1px solid var(--border)!important;overflow-y:auto!important;display:flex!important;flex-direction:column!important}
+    .admin-main{margin-left:220px!important;flex:1!important;min-width:0!important;padding:1.75rem!important;min-height:100vh!important;background:var(--bg)!important}
+    @media(max-width:900px){.admin-sidebar{transform:translateX(-100%)!important}.admin-sidebar.open{transform:translateX(0)!important}.admin-main{margin-left:0!important;padding:1rem!important}}
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="admin-logo">🛍 SHOP Admin</div>
+    <ul class="admin-nav">
+      <li><a href="/admin/index.html">📊 Dashboard</a></li>
+      <li><a href="/admin/products.html">📦 Products</a></li>
+      <li><a href="/admin/orders.html" class="active">🛒 Orders</a></li>
+      <li><a href="/admin/users.html">👥 Users</a></li>
+      <li><a href="/admin/news.html">📰 News</a></li>
+      <li><a href="/admin/coupons.html">🎟 Coupons</a></li>
+      <li><a href="/index.html">🌐 View Site</a></li>
+      <li><a href="#" id="admin-logout">🚪 Logout</a></li>
+    </ul>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="admin-hamburger" id="admin-hamburger">☰</button>
+        <h1 class="admin-title">🛒 Buyurtmalar</h1>
+      </div>
+      <button class="theme-toggle" id="theme-toggle">🌙</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>ID</th><th>Mijoz</th><th>Mahsulotlar</th><th>Jami</th><th>Holat</th><th>Sana</th><th>Yangilash</th></tr></thead>
+        <tbody id="orders-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  Theme.init();
+  if (!Auth.requireAdmin()) {}
+  document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-hamburger').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  });
+  document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.remove('open');
+    this.classList.remove('open');
+  });
+
+  var statuses = ['pending','confirmed','shipped','delivered','cancelled'];
+  var statusLabels = { pending:'Kutilmoqda', confirmed:'Tasdiqlangan', shipped:'Yuborilgan', delivered:'Yetkazilgan', cancelled:'Bekor' };
+
+  async function loadOrders() {
+    try {
+      var data = await api.get('/orders');
+      var tbody = document.getElementById('orders-tbody');
+      if (!data.orders.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">Buyurtma yo\'q</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.orders.map(function(o) {
+        var customer = o.user ? (o.user.fullName + ' (@' + o.user.username + ')') : 'Noma\'lum';
+        var itemsText = o.items.map(function(i) { return i.name + ' ×' + i.quantity; }).join(', ');
+        var statusOpts = statuses.map(function(s) {
+          return '<option value="' + s + '"' + (s === o.status ? ' selected' : '') + '>' + statusLabels[s] + '</option>';
+        }).join('');
+        return '<tr>' +
+          '<td><code style="font-size:.78rem;color:var(--primary)">#' + String(o._id).slice(-8).toUpperCase() + '</code></td>' +
+          '<td>' + customer + '</td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + itemsText + '">' + itemsText + '</td>' +
+          '<td><strong>$' + o.finalPrice.toFixed(2) + '</strong></td>' +
+          '<td><span class="status-badge status-' + o.status + '">' + statusLabels[o.status] + '</span></td>' +
+          '<td>' + new Date(o.createdAt).toLocaleDateString('uz-UZ') + '</td>' +
+          '<td><div style="display:flex;gap:.4rem;align-items:center">' +
+          '<select class="form-control" style="width:auto;padding:.3rem .5rem;font-size:.82rem" data-id="' + o._id + '">' + statusOpts + '</select>' +
+          '<button class="btn btn-sm btn-primary update-btn" data-id="' + o._id + '">✓</button>' +
+          '</div></td></tr>';
+      }).join('');
+
+      document.querySelectorAll('.update-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var id = this.dataset.id;
+          var sel = document.querySelector('select[data-id="' + id + '"]');
+          try {
+            await api.put('/orders/' + id, { status: sel.value });
+            Toast.success('Holat yangilandi!');
+            loadOrders();
+          } catch(e) { Toast.error(e.message); }
+        });
+      });
+    } catch(e) { Toast.error(e.message); }
+  }
+  loadOrders();
+</script>
+</body>
+</html>

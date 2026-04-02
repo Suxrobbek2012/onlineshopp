@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP — Cart</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .cart-layout{display:grid;grid-template-columns:1fr 340px;gap:2rem;padding:2rem 0}
+    .cart-item{display:flex;gap:0.75rem;padding:1rem;border-bottom:1px solid var(--border);align-items:center;flex-wrap:wrap}
+    .cart-item img{width:72px;height:72px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0}
+    .cart-img-ph{width:72px;height:72px;border-radius:var(--radius-sm);background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
+    .cart-item-info{flex:1;min-width:0}
+    .cart-item-name{font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cart-item-price{color:var(--primary);font-weight:700;font-size:1rem}
+    .qty-controls{display:flex;align-items:center;gap:.4rem}
+    .qty-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text);font-size:1rem;font-weight:700;transition:all var(--transition);display:flex;align-items:center;justify-content:center}
+    .qty-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .qty-val{min-width:24px;text-align:center;font-weight:700;font-size:0.95rem}
+    .summary-card{background:var(--bg-card);border-radius:var(--radius);padding:1.5rem;height:fit-content;position:sticky;top:calc(var(--nav-height) + 1rem);border:1px solid var(--border)}
+    .summary-row{display:flex;justify-content:space-between;margin-bottom:.75rem;font-size:0.9rem}
+    .summary-total{font-size:1.15rem;font-weight:800;border-top:2px solid var(--border);padding-top:.75rem;margin-top:.75rem}
+    @media(max-width:768px){
+      .cart-layout{grid-template-columns:1fr;gap:1rem;padding:1rem 0}
+      .summary-card{position:static}
+    }
+    @media(max-width:480px){
+      .cart-item{gap:0.5rem;padding:0.75rem}
+      .cart-item img,.cart-img-ph{width:60px;height:60px}
+      .qty-btn{width:26px;height:26px;font-size:0.9rem}
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <div class="container">
+    <h1 class="section-title mt-3" data-i18n="cart.title">Mening savatcham</h1>
+    <div id="cart-empty" class="text-center mt-4 hidden">
+      <div style="font-size:4rem">🛒</div>
+      <p class="text-muted mt-2" data-i18n="cart.empty">Savat bo'sh</p>
+      <a href="shop.html" class="btn btn-primary mt-3">Shop Now</a>
+    </div>
+    <div class="cart-layout" id="cart-layout">
+      <div class="card" id="cart-items-card">
+        <div id="cart-items"><div class="loading-overlay"><div class="spinner"></div></div></div>
+      </div>
+      <aside class="summary-card">
+        <h3 style="margin-bottom:1rem" data-i18n="cart.total">Jami</h3>
+        <div class="summary-row"><span data-i18n="cart.subtotal">Oraliq jami</span><span id="subtotal">$0.00</span></div>
+        <div class="summary-row" id="discount-row" style="display:none;color:#ff6584"><span data-i18n="cart.discount">Chegirma</span><span id="discount-val">-$0.00</span></div>
+        <div class="summary-row summary-total"><span data-i18n="cart.final_total">Yakuniy jami</span><span id="final-total">$0.00</span></div>
+        <div class="form-group mt-2">
+          <label class="form-label" data-i18n="cart.promo">Promo kod</label>
+          <div class="input-group">
+            <input type="text" id="promo-input" class="form-control" placeholder="SAVE10">
+            <button class="btn btn-secondary" id="apply-promo" data-i18n="cart.apply">Qo'llash</button>
+          </div>
+          <div id="promo-msg" style="font-size:.8rem;margin-top:.3rem"></div>
+        </div>
+        <button class="btn btn-primary btn-block mt-2" id="place-order-btn" data-i18n="cart.place_order">Buyurtma berish</button>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Order confirm modal -->
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">🎉 <span data-i18n="cart.order_success">Buyurtma muvaffaqiyatli berildi!</span></span>
+        <button class="modal-close">✕</button>
+      </div>
+      <p style="color:var(--text-muted)">Your order has been placed. We'll notify you about updates.</p>
+      <div class="mt-3 flex gap-1">
+        <a href="shop.html" class="btn btn-primary" style="flex:1">Continue Shopping</a>
+        <a href="profile.html" class="btn btn-secondary" style="flex:1">My Orders</a>
+      </div>
+    </div>
+  </div>
+
+  <footer><div class="container"><p>© 2026 SHOP</p></div></footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    Theme.init();
+    I18N.init().then(function() {
+      Auth.updateNavbar();
+      CartUI.updateBadge();
+      if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+      loadCart();
+    });
+
+    var cartData = null;
+    var promoDiscount = 0;
+
+    async function loadCart() {
+      try {
+        var data = await api.get('/cart');
+        cartData = data.cart;
+        renderCart();
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    function renderCart() {
+      var items = cartData && cartData.items ? cartData.items : [];
+      var layout = document.getElementById('cart-layout');
+      var empty = document.getElementById('cart-empty');
+
+      if (!items.length) {
+        layout.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+      layout.classList.remove('hidden');
+      empty.classList.add('hidden');
+
+      var html = items.map(function(item) {
+        var p = item.product;
+        if (!p) return '';
+        var price = p.discount > 0 ? (p.price * (1 - p.discount / 100)).toFixed(2) : p.price.toFixed(2);
+        var imgSrc = p.image ? 'http://localhost:5000' + p.image : null;
+        return '<div class="cart-item" data-item-id="' + item._id + '">' +
+          (imgSrc ? '<img src="' + imgSrc + '" alt="' + p.name + '">' : '<div class="cart-img-ph">🛍️</div>') +
+          '<div class="cart-item-info">' +
+          '<div class="cart-item-name">' + p.name + '</div>' +
+          '<div class="cart-item-price">$' + price + '</div>' +
+          '</div>' +
+          '<div class="qty-controls">' +
+          '<button class="qty-btn qty-minus" data-id="' + item._id + '" data-qty="' + item.quantity + '">−</button>' +
+          '<span class="qty-val">' + item.quantity + '</span>' +
+          '<button class="qty-btn qty-plus" data-id="' + item._id + '" data-qty="' + item.quantity + '">+</button>' +
+          '</div>' +
+          '<button class="btn btn-danger btn-sm remove-item" data-id="' + item._id + '" style="margin-left:.5rem">🗑</button>' +
+          '</div>';
+      }).join('');
+
+      document.getElementById('cart-items').innerHTML = html;
+      updateTotals();
+      attachCartHandlers();
+    }
+
+    function updateTotals() {
+      var items = cartData && cartData.items ? cartData.items : [];
+      var subtotal = items.reduce(function(sum, item) {
+        var p = item.product;
+        if (!p) return sum;
+        var price = p.discount > 0 ? p.price * (1 - p.discount / 100) : p.price;
+        return sum + price * item.quantity;
+      }, 0);
+      var discount = subtotal * promoDiscount / 100;
+      var final = subtotal - discount;
+      document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+      document.getElementById('final-total').textContent = '$' + final.toFixed(2);
+      var discRow = document.getElementById('discount-row');
+      if (promoDiscount > 0) {
+        discRow.style.display = 'flex';
+        document.getElementById('discount-val').textContent = '-$' + discount.toFixed(2);
+      } else {
+        discRow.style.display = 'none';
+      }
+    }
+
+    function attachCartHandlers() {
+      document.querySelectorAll('.qty-minus').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var newQty = parseInt(this.dataset.qty) - 1;
+          if (newQty <= 0) { removeItem(this.dataset.id); return; }
+          await updateQty(this.dataset.id, newQty);
+        });
+      });
+      document.querySelectorAll('.qty-plus').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          await updateQty(this.dataset.id, parseInt(this.dataset.qty) + 1);
+        });
+      });
+      document.querySelectorAll('.remove-item').forEach(function(btn) {
+        btn.addEventListener('click', function() { removeItem(this.dataset.id); });
+      });
+    }
+
+    async function updateQty(itemId, qty) {
+      try {
+        var data = await api.put('/cart/' + itemId, { quantity: qty });
+        cartData = data.cart;
+        renderCart();
+        CartUI.updateBadge();
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    async function removeItem(itemId) {
+      try {
+        var data = await api.delete('/cart/' + itemId);
+        cartData = data.cart;
+        renderCart();
+        CartUI.updateBadge();
+        Toast.info('Item removed');
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    document.getElementById('apply-promo').addEventListener('click', async function() {
+      var code = document.getElementById('promo-input').value.trim();
+      if (!code) return;
+      try {
+        var data = await api.post('/coupons/validate', { code });
+        promoDiscount = data.discount;
+        document.getElementById('promo-msg').innerHTML = '<span style="color:var(--accent)">✅ ' + data.discount + '% discount applied!</span>';
+        updateTotals();
+      } catch(e) {
+        promoDiscount = 0;
+        document.getElementById('promo-msg').innerHTML = '<span style="color:#dc3545">❌ ' + e.message + '</span>';
+        updateTotals();
+      }
+    });
+
+    document.getElementById('place-order-btn').addEventListener('click', async function() {
+      if (!cartData || !cartData.items || !cartData.items.length) return;
+      this.disabled = true;
+      try {
+        var promoCode = document.getElementById('promo-input').value.trim();
+        await api.post('/orders', { promoCode });
+        cartData = { items: [] };
+        CartUI.updateBadge();
+        Modal.open('order-modal');
+      } catch(e) {
+        Toast.error(e.message);
+        this.disabled = false;
+      }
+    });
+  </script>
+<script src="js/bg-animation.js"></script>
+</body>
+</html>

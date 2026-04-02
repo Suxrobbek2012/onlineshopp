@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP — Do'kon</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .shop-layout { display: grid; grid-template-columns: 260px 1fr; gap: 2rem; padding: 2rem 0; }
+    .filters-panel { background: var(--bg-card); border-radius: var(--radius); padding: 1.5rem; height: fit-content; position: sticky; top: calc(var(--nav-height) + 1rem); border: 1px solid var(--border); }
+    .filter-section { margin-bottom: 1.5rem; }
+    .filter-title { font-weight: 700; margin-bottom: 0.75rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+    .range-inputs { display: flex; gap: 0.5rem; align-items: center; }
+    .range-inputs input { width: 75px; }
+    .sort-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .sort-bar select { padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.875rem; }
+    .results-count { color: var(--text-muted); font-size: 0.875rem; margin-left: auto; }
+    .filter-toggle-btn { display: none; width: 100%; margin-bottom: 1rem; }
+    @media(max-width:900px) { .shop-layout { grid-template-columns: 220px 1fr; gap: 1.25rem; } }
+    @media(max-width:768px) {
+      .shop-layout { grid-template-columns: 1fr; gap: 1rem; }
+      .filters-panel { position: static; display: none; }
+      .filters-panel.open { display: block; }
+      .filter-toggle-btn { display: flex; }
+      .sort-bar { gap: 0.5rem; }
+      .sort-bar .input-group { max-width: 100% !important; flex: 1 1 100%; }
+    }
+    @media(max-width:480px) {
+      .sort-bar select { font-size: 0.8rem; padding: 0.4rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <div class="container">
+    <div class="shop-layout">
+      <button class="btn btn-ghost filter-toggle-btn" id="filter-toggle-btn">🔽 Filter</button>
+      <!-- Filters -->
+      <aside class="filters-panel">
+        <h3 style="margin-bottom:1.5rem;font-size:1.1rem" data-i18n="shop.filter">Filter</h3>
+
+        <div class="filter-section">
+          <div class="filter-title" data-i18n="shop.category">Kategoriya</div>
+          <select id="filter-category" class="form-control">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-title" data-i18n="shop.price_range">Narx oralig'i</div>
+          <div class="range-inputs">
+            <input type="number" id="min-price" class="form-control" placeholder="Min" min="0">
+            <span>—</span>
+            <input type="number" id="max-price" class="form-control" placeholder="Max" min="0">
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-title" data-i18n="shop.rating">Reyting</div>
+          <select id="filter-rating" class="form-control">
+            <option value="">Any</option>
+            <option value="4">4+ ★</option>
+            <option value="3">3+ ★</option>
+            <option value="2">2+ ★</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="apply-filters">Apply</button>
+        <button class="btn btn-secondary btn-block mt-1" id="reset-filters">Reset</button>
+      </aside>
+
+      <!-- Products -->
+      <main>
+        <div class="sort-bar">
+          <div class="input-group" style="flex:1;max-width:320px">
+            <input type="text" id="search-input" class="form-control" data-i18n-placeholder="shop.search" placeholder="Search...">
+            <button class="btn btn-primary" id="search-btn">🔍</button>
+          </div>
+          <select id="sort-select" class="form-control" style="width:auto">
+            <option value="newest" data-i18n="shop.sort_newest">Newest</option>
+            <option value="price_asc" data-i18n="shop.sort_price_asc">Price ↑</option>
+            <option value="price_desc" data-i18n="shop.sort_price_desc">Price ↓</option>
+            <option value="popular" data-i18n="shop.sort_popular">Popular</option>
+            <option value="rating">Rating</option>
+          </select>
+          <span class="results-count" id="results-count"></span>
+        </div>
+
+        <div id="products-grid" class="products-grid">
+          <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+        <div id="pagination" class="pagination"></div>
+      </main>
+    </div>
+  </div>
+
+  <footer><div class="container"><p>© 2026 SHOP</p></div></footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    Theme.init();
+    var currentPage = 1;
+    var currentParams = {};
+
+    I18N.init().then(function() {
+      Auth.updateNavbar();
+      CartUI.updateBadge();
+      loadCategories();
+
+      // Read URL params
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('category')) document.getElementById('filter-category').value = params.get('category');
+      if (params.get('search')) document.getElementById('search-input').value = params.get('search');
+
+      loadProducts(1);
+    });
+
+    async function loadCategories() {
+      try {
+        var data = await api.get('/products/categories');
+        var sel = document.getElementById('filter-category');
+        data.categories.forEach(function(c) {
+          var opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt);
+        });
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('category')) sel.value = params.get('category');
+      } catch(e) {}
+    }
+
+    async function loadProducts(page) {
+      currentPage = page;
+      var grid = document.getElementById('products-grid');
+      grid.innerHTML = '<div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>';
+
+      var q = new URLSearchParams();
+      q.set('page', page);
+      q.set('limit', 16);
+      q.set('sort', document.getElementById('sort-select').value);
+
+      var cat = document.getElementById('filter-category').value;
+      var minP = document.getElementById('min-price').value;
+      var maxP = document.getElementById('max-price').value;
+      var rat = document.getElementById('filter-rating').value;
+      var search = document.getElementById('search-input').value.trim();
+
+      if (cat) q.set('category', cat);
+      if (minP) q.set('minPrice', minP);
+      if (maxP) q.set('maxPrice', maxP);
+      if (rat) q.set('rating', rat);
+      if (search) q.set('search', search);
+
+      try {
+        var data = await api.get('/products?' + q.toString());
+        var user = Auth.getUser();
+        var favs = user ? (user.favorites || []) : [];
+
+        document.getElementById('results-count').textContent = data.total + ' products';
+
+        if (!data.products.length) {
+          grid.innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1" data-i18n="shop.no_products">No products found</p>';
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+
+        grid.innerHTML = data.products.map(function(p) { return renderProductCard(p, favs); }).join('');
+        renderPagination(data.page, data.pages);
+        attachHandlers();
+      } catch(e) {
+        grid.innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1">' + e.message + '</p>';
+      }
+    }
+
+    function renderPagination(page, pages) {
+      var el = document.getElementById('pagination');
+      if (pages <= 1) { el.innerHTML = ''; return; }
+      var html = '';
+      for (var i = 1; i <= pages; i++) {
+        html += '<button class="page-btn' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+      }
+      el.innerHTML = html;
+      el.querySelectorAll('.page-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { loadProducts(parseInt(this.dataset.page)); window.scrollTo(0,0); });
+      });
+    }
+
+    function attachHandlers() {
+      document.querySelectorAll('.add-to-cart-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+          try {
+            await api.post('/cart', { productId: this.dataset.id, quantity: 1 });
+            Toast.success('Added to cart!');
+            CartUI.updateBadge();
+          } catch(e) { Toast.error(e.message); }
+        });
+      });
+      document.querySelectorAll('.fav-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+          var user = Auth.getUser();
+          try {
+            await api.post('/users/' + user.id + '/favorites/' + this.dataset.id, {});
+            this.classList.toggle('active');
+            this.textContent = this.classList.contains('active') ? '❤️' : '🤍';
+          } catch(e) { Toast.error(e.message); }
+        });
+      });
+    }
+
+    document.getElementById('apply-filters').addEventListener('click', function() { loadProducts(1); });
+    document.getElementById('reset-filters').addEventListener('click', function() {
+      document.getElementById('filter-category').value = '';
+      document.getElementById('min-price').value = '';
+      document.getElementById('max-price').value = '';
+      document.getElementById('filter-rating').value = '';
+      document.getElementById('search-input').value = '';
+      loadProducts(1);
+    });
+    document.getElementById('search-btn').addEventListener('click', function() { loadProducts(1); });
+    document.getElementById('search-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') loadProducts(1); });
+    document.getElementById('sort-select').addEventListener('change', function() { loadProducts(1); });
+
+    var filterBtn = document.getElementById('filter-toggle-btn');
+    if (filterBtn) {
+      filterBtn.addEventListener('click', function() {
+        var panel = document.querySelector('.filters-panel');
+        panel.classList.toggle('open');
+        this.textContent = panel.classList.contains('open') ? '🔼 Filter' : '🔽 Filter';
+      });
+    }
+  </script>
+<script src="js/bg-animation.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP — Bosh sahifa</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="animate-fade-up">
+        <h1 data-i18n="home.hero_title">Eng yaxshi <span>mahsulotlar</span></h1>
+        <p data-i18n="home.hero_sub">Sifat va arzonlik bir joyda — SHOP da xarid qiling</p>
+        <div class="hero-btns">
+          <a href="shop.html" class="btn btn-primary btn-lg" data-i18n="home.shop_now">Hozir xarid qiling</a>
+          <a href="discounts.html" class="btn-outline">🔥 <span data-i18n="nav.discounts">Chegirmalar</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="home.categories">Kategoriyalar</h2>
+        <a href="shop.html" class="btn btn-ghost btn-sm" data-i18n="home.view_all">Hammasini ko'rish →</a>
+      </div>
+      <div id="categories-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem;"></div>
+    </div>
+  </section>
+
+  <!-- Featured -->
+  <section class="section" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="home.featured">Tanlangan mahsulotlar</h2>
+        <a href="shop.html?featured=true" class="btn btn-ghost btn-sm" data-i18n="home.view_all">Hammasini ko'rish →</a>
+      </div>
+      <div id="featured-grid" class="products-grid">
+        <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- New Arrivals -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="home.new_arrivals">Yangi kelganlar</h2>
+        <a href="shop.html?sort=newest" class="btn btn-ghost btn-sm" data-i18n="home.view_all">Hammasini ko'rish →</a>
+      </div>
+      <div id="new-grid" class="products-grid">
+        <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- On Sale -->
+  <section class="section" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="home.on_sale">🔥 Chegirmadagi mahsulotlar</h2>
+        <a href="discounts.html" class="btn btn-ghost btn-sm" data-i18n="home.view_all">Hammasini ko'rish →</a>
+      </div>
+      <div id="sale-grid" class="products-grid">
+        <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-logo">🛍 SHOP</div>
+        <div class="footer-text">© 2026 SHOP. <span data-i18n="footer.rights">Barcha huquqlar himoyalangan</span></div>
+        <div style="display:flex;gap:1rem;font-size:0.85rem">
+          <a href="#" data-i18n="footer.about" style="color:var(--text-muted)">Biz haqimizda</a>
+          <a href="#" data-i18n="footer.contact" style="color:var(--text-muted)">Aloqa</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Order modal -->
+  <div class="modal-overlay" id="cart-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">🎉 <span data-i18n="cart.order_success">Buyurtma berildi!</span></span>
+        <button class="modal-close">✕</button>
+      </div>
+      <p style="color:var(--text-muted);margin-bottom:1.5rem" data-i18n="cart.order_success_sub">Buyurtmangiz holati haqida xabar beramiz.</p>
+      <a href="shop.html" class="btn btn-primary btn-block" data-i18n="cart.continue_shopping">Xaridni davom ettirish</a>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    Theme.init();
+    I18N.init().then(function() {
+      Auth.updateNavbar();
+      CartUI.updateBadge();
+      loadHome();
+    });
+
+    async function loadHome() {
+      try {
+        var catData = await api.get('/products/categories');
+        var catIcons = { Electronics:'📱', Footwear:'👟', Clothing:'👕', Home:'🏠', Sports:'⚽', Accessories:'👜' };
+        document.getElementById('categories-grid').innerHTML = catData.categories.map(function(c) {
+          return '<a href="shop.html?category=' + encodeURIComponent(c) + '" class="category-card">' +
+            '<div class="cat-icon">' + (catIcons[c] || '🛍️') + '</div>' +
+            '<div class="cat-name">' + c + '</div></a>';
+        }).join('');
+
+        var user = Auth.getUser();
+        var favs = user ? (user.favorites || []).map(function(f) { return f._id || f; }) : [];
+
+        var featData = await api.get('/products?featured=true&limit=8');
+        document.getElementById('featured-grid').innerHTML = featData.products.length
+          ? featData.products.map(function(p) { return renderProductCard(p, favs); }).join('')
+          : '<p class="text-muted text-center" style="grid-column:1/-1;padding:2rem">Mahsulot yo\'q</p>';
+
+        var newData = await api.get('/products?sort=newest&limit=8');
+        document.getElementById('new-grid').innerHTML = newData.products.length
+          ? newData.products.map(function(p) { return renderProductCard(p, favs); }).join('')
+          : '<p class="text-muted text-center" style="grid-column:1/-1;padding:2rem">Mahsulot yo\'q</p>';
+
+        var saleData = await api.get('/products?sale=true&limit=8');
+        document.getElementById('sale-grid').innerHTML = saleData.products.length
+          ? saleData.products.map(function(p) { return renderProductCard(p, favs); }).join('')
+          : '<p class="text-muted text-center" style="grid-column:1/-1;padding:2rem">Chegirmali mahsulot yo\'q</p>';
+
+        attachHandlers();
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    function attachHandlers() {
+      document.querySelectorAll('.add-to-cart-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+          var orig = this.textContent;
+          this.disabled = true; this.textContent = '...';
+          try {
+            await api.post('/cart', { productId: this.dataset.id, quantity: 1 });
+            Toast.success(I18N.t('common.success') + ' ✓');
+            CartUI.updateBadge();
+            this.textContent = '✓';
+            var self = this;
+            setTimeout(function() { self.disabled = false; self.textContent = orig; }, 1200);
+          } catch(e) { Toast.error(e.message); this.disabled = false; this.textContent = orig; }
+        });
+      });
+      document.querySelectorAll('.fav-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+          var user = Auth.getUser();
+          try {
+            await api.post('/users/' + user.id + '/favorites/' + this.dataset.id, {});
+            this.classList.toggle('active');
+            this.textContent = this.classList.contains('active') ? '❤️' : '🤍';
+          } catch(e) { Toast.error(e.message); }
+        });
+      });
+      // Click on card → go to shop
+      document.querySelectorAll('.product-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('button')) return;
+          window.location.href = 'shop.html';
+        });
+      });
+    }
+  </script>
+<script src="js/bg-animation.js"></script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP Admin — News</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="./css/admin.css">
+  <style>
+    .admin-layout{display:flex!important}
+    .admin-sidebar{position:fixed!important;left:0!important;top:0!important;width:220px!important;height:100vh!important;z-index:500!important;background:var(--bg-card)!important;border-right:1px solid var(--border)!important;overflow-y:auto!important;display:flex!important;flex-direction:column!important}
+    .admin-main{margin-left:220px!important;flex:1!important;min-width:0!important;padding:1.75rem!important;min-height:100vh!important;background:var(--bg)!important}
+    @media(max-width:900px){.admin-sidebar{transform:translateX(-100%)!important}.admin-sidebar.open{transform:translateX(0)!important}.admin-main{margin-left:0!important;padding:1rem!important}}
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="admin-logo">🛍 SHOP Admin</div>
+    <ul class="admin-nav">
+      <li><a href="/admin/index.html">📊 Dashboard</a></li>
+      <li><a href="/admin/products.html">📦 Products</a></li>
+      <li><a href="/admin/orders.html">🛒 Orders</a></li>
+      <li><a href="/admin/users.html">👥 Users</a></li>
+      <li><a href="/admin/news.html" class="active">📰 News</a></li>
+      <li><a href="/admin/coupons.html">🎟 Coupons</a></li>
+      <li><a href="/index.html">🌐 View Site</a></li>
+      <li><a href="#" id="admin-logout">🚪 Logout</a></li>
+    </ul>
+  </aside>
+  <main class="admin-main">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="admin-hamburger" id="admin-hamburger">☰</button>
+        <h1 class="admin-title">📰 Yangiliklar</h1>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="theme-toggle" id="theme-toggle">🌙</button>
+        <button class="btn btn-primary" id="add-news-btn">+ Qo'shish</button>
+      </div>
+    </div>
+
+    <div id="news-form-wrap" style="display:none;margin-bottom:1.5rem">
+      <div class="admin-form-card">
+        <h3 id="news-form-title" style="margin-bottom:1.25rem;font-weight:700">Yangilik qo'shish</h3>
+        <form id="news-form">
+          <input type="hidden" id="news-id">
+          <div class="form-group"><label class="form-label">Sarlavha *</label><input type="text" id="n-title" class="form-control" required></div>
+          <div class="form-group"><label class="form-label">Qisqa tavsif</label><input type="text" id="n-excerpt" class="form-control" placeholder="Qisqa tavsif..."></div>
+          <div class="form-group"><label class="form-label">Matn *</label><textarea id="n-content" class="form-control" rows="5" required></textarea></div>
+          <div class="form-group"><label class="form-label">Rasm</label><input type="file" id="n-image" class="form-control" accept="image/*"></div>
+          <div style="display:flex;gap:.75rem">
+            <button type="submit" class="btn btn-primary">💾 Saqlash</button>
+            <button type="button" class="btn btn-ghost" id="cancel-news-btn">Bekor qilish</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Rasm</th><th>Sarlavha</th><th>Qisqa tavsif</th><th>Sana</th><th>Amallar</th></tr></thead>
+        <tbody id="news-tbody">
+          <tr><td colspan="5" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  Theme.init(); if (!Auth.requireAdmin()) {}
+  document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-hamburger').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); });
+  document.getElementById('sidebar-overlay').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.remove('open'); this.classList.remove('open'); });
+
+  if (new URLSearchParams(window.location.search).get('action') === 'add') document.getElementById('news-form-wrap').style.display = 'block';
+
+  async function loadNews() {
+    try {
+      var data = await api.get('/news?limit=50');
+      var tbody = document.getElementById('news-tbody');
+      if (!data.articles.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">Yangilik yo\'q</td></tr>'; return; }
+      tbody.innerHTML = data.articles.map(function(a) {
+        var imgSrc = a.image ? (a.image.startsWith('http') ? a.image : 'http://localhost:5000' + a.image) : null;
+        return '<tr>' +
+          '<td>' + (imgSrc ? '<img src="' + imgSrc + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px">' : '📰') + '</td>' +
+          '<td><strong>' + a.title + '</strong></td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.excerpt || '—') + '</td>' +
+          '<td>' + new Date(a.createdAt).toLocaleDateString('uz-UZ') + '</td>' +
+          '<td style="white-space:nowrap">' +
+          '<button class="btn btn-sm btn-ghost edit-news-btn" data-id="' + a._id + '" style="margin-right:.25rem">✏️</button>' +
+          '<button class="btn btn-sm btn-danger del-news-btn" data-id="' + a._id + '">🗑</button>' +
+          '</td></tr>';
+      }).join('');
+      document.querySelectorAll('.del-news-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          if (!confirm('O\'chirishni tasdiqlaysizmi?')) return;
+          try { await api.delete('/news/' + this.dataset.id); Toast.success('O\'chirildi'); loadNews(); } catch(e) { Toast.error(e.message); }
+        });
+      });
+      document.querySelectorAll('.edit-news-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          try {
+            var data = await api.get('/news/' + this.dataset.id);
+            var a = data.article;
+            document.getElementById('news-id').value = a._id;
+            document.getElementById('n-title').value = a.title;
+            document.getElementById('n-excerpt').value = a.excerpt || '';
+            document.getElementById('n-content').value = a.content;
+            document.getElementById('news-form-title').textContent = 'Yangilikni tahrirlash';
+            document.getElementById('news-form-wrap').style.display = 'block';
+            document.getElementById('news-form-wrap').scrollIntoView({ behavior: 'smooth' });
+          } catch(e) { Toast.error(e.message); }
+        });
+      });
+    } catch(e) { Toast.error(e.message); }
+  }
+
+  document.getElementById('add-news-btn').addEventListener('click', function() { document.getElementById('news-form').reset(); document.getElementById('news-id').value = ''; document.getElementById('news-form-title').textContent = 'Yangilik qo\'shish'; document.getElementById('news-form-wrap').style.display = 'block'; });
+  document.getElementById('cancel-news-btn').addEventListener('click', function() { document.getElementById('news-form-wrap').style.display = 'none'; });
+  document.getElementById('news-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var id = document.getElementById('news-id').value;
+    var fd = new FormData();
+    fd.append('title', document.getElementById('n-title').value);
+    fd.append('excerpt', document.getElementById('n-excerpt').value);
+    fd.append('content', document.getElementById('n-content').value);
+    var img = document.getElementById('n-image').files[0];
+    if (img) fd.append('image', img);
+    try {
+      if (id) { await api.putForm('/news/' + id, fd); Toast.success('Yangilandi!'); }
+      else { await api.postForm('/news', fd); Toast.success('Qo\'shildi!'); }
+      document.getElementById('news-form-wrap').style.display = 'none';
+      loadNews();
+    } catch(e) { Toast.error(e.message); }
+  });
+  loadNews();
+</script>
+</body>
+</html>

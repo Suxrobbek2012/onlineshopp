@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP Admin — Dashboard</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .admin-layout{display:flex!important}
+    .admin-sidebar{position:fixed!important;left:0!important;top:0!important;width:220px!important;height:100vh!important;z-index:500!important;background:var(--bg-card)!important;border-right:1px solid var(--border)!important;overflow-y:auto!important;display:flex!important;flex-direction:column!important}
+    .admin-main{margin-left:220px!important;flex:1!important;min-width:0!important;padding:1.75rem!important;min-height:100vh!important;background:var(--bg)!important}
+    @media(max-width:900px){.admin-sidebar{transform:translateX(-100%)!important}.admin-sidebar.open{transform:translateX(0)!important}.admin-main{margin-left:0!important;padding:1rem!important}}
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="admin-logo">🛍 SHOP Admin</div>
+    <ul class="admin-nav">
+      <li><a href="/admin/index.html" class="active">📊 Dashboard</a></li>
+      <li><a href="/admin/products.html">📦 Products</a></li>
+      <li><a href="/admin/orders.html">🛒 Orders</a></li>
+      <li><a href="/admin/users.html">👥 Users</a></li>
+      <li><a href="/admin/news.html">📰 News</a></li>
+      <li><a href="/admin/coupons.html">🎟 Coupons</a></li>
+      <li><a href="/index.html">🌐 View Site</a></li>
+      <li><a href="#" id="admin-logout">🚪 Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="admin-hamburger" id="admin-hamburger">☰</button>
+        <h1 class="admin-title">Dashboard</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <button class="theme-toggle" id="theme-toggle">🌙</button>
+        <span id="admin-user-name" style="font-weight:600;font-size:.9rem"></span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="stat-users">—</div>
+        <div class="stat-label">Foydalanuvchilar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="stat-products">—</div>
+        <div class="stat-label">Mahsulotlar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🛒</div>
+        <div class="stat-value" id="stat-orders">—</div>
+        <div class="stat-label">Buyurtmalar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="stat-revenue">—</div>
+        <div class="stat-label">Daromad</div>
+      </div>
+    </div>
+
+    <!-- Dashboard grid -->
+    <div class="dashboard-grid">
+      <div class="card" style="padding:1.5rem">
+        <h3 style="margin-bottom:1rem;font-weight:700">📊 Buyurtmalar holati</h3>
+        <div id="orders-status-chart"></div>
+      </div>
+      <div class="card" style="padding:1.5rem">
+        <h3 style="margin-bottom:1rem;font-weight:700">⚡ Tezkor amallar</h3>
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
+          <a href="/admin/products.html?action=add" class="btn btn-primary">+ Mahsulot qo'shish</a>
+          <a href="/admin/news.html?action=add" class="btn btn-secondary">+ Yangilik qo'shish</a>
+          <a href="/admin/coupons.html?action=add" class="btn btn-secondary">+ Kupon qo'shish</a>
+          <a href="/admin/orders.html" class="btn btn-ghost">Barcha buyurtmalar →</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  Theme.init();
+  if (!Auth.requireAdmin()) {}
+
+  var user = Auth.getUser();
+  if (user) document.getElementById('admin-user-name').textContent = '👤 ' + user.fullName;
+
+  // Theme toggle
+  document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
+
+  // Logout
+  document.getElementById('admin-logout').addEventListener('click', function(e) {
+    e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html';
+  });
+
+  // Hamburger
+  document.getElementById('admin-hamburger').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  });
+  document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.remove('open');
+    this.classList.remove('open');
+  });
+
+  // Stats
+  async function loadStats() {
+    try {
+      var data = await api.get('/admin/stats');
+      var s = data.stats;
+      document.getElementById('stat-users').textContent    = s.totalUsers;
+      document.getElementById('stat-products').textContent = s.totalProducts;
+      document.getElementById('stat-orders').textContent   = s.totalOrders;
+      document.getElementById('stat-revenue').textContent  = '$' + s.revenue.toFixed(2);
+
+      var statuses = ['pending','confirmed','shipped','delivered','cancelled'];
+      var colors   = { pending:'#f59e0b', confirmed:'#3b82f6', shipped:'#8b5cf6', delivered:'#10b981', cancelled:'#f43f5e' };
+      var labels   = { pending:'Kutilmoqda', confirmed:'Tasdiqlangan', shipped:'Yuborilgan', delivered:'Yetkazilgan', cancelled:'Bekor' };
+
+      document.getElementById('orders-status-chart').innerHTML = statuses.map(function(st) {
+        var count = s.ordersByStatus[st] || 0;
+        var pct   = s.totalOrders > 0 ? Math.round(count / s.totalOrders * 100) : 0;
+        return '<div style="margin-bottom:.85rem">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.875rem">' +
+          '<span>' + labels[st] + '</span>' +
+          '<span style="font-weight:700">' + count + ' (' + pct + '%)</span></div>' +
+          '<div style="background:var(--border);border-radius:4px;height:8px">' +
+          '<div style="background:' + colors[st] + ';width:' + pct + '%;height:100%;border-radius:4px;transition:width .6s ease"></div>' +
+          '</div></div>';
+      }).join('');
+    } catch(e) { Toast.error(e.message); }
+  }
+  loadStats();
+</script>
+</body>
+</html>

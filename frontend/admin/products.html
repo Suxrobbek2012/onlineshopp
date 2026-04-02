@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP Admin — Products</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="./css/admin.css">
+  <style>
+    .admin-layout{display:flex!important}
+    .admin-sidebar{position:fixed!important;left:0!important;top:0!important;width:220px!important;height:100vh!important;z-index:500!important;background:var(--bg-card)!important;border-right:1px solid var(--border)!important;overflow-y:auto!important;display:flex!important;flex-direction:column!important}
+    .admin-main{margin-left:220px!important;flex:1!important;min-width:0!important;padding:1.75rem!important;min-height:100vh!important;background:var(--bg)!important}
+    @media(max-width:900px){.admin-sidebar{transform:translateX(-100%)!important}.admin-sidebar.open{transform:translateX(0)!important}.admin-main{margin-left:0!important;padding:1rem!important}}
+  </style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="admin-logo">🛍 SHOP Admin</div>
+    <ul class="admin-nav">
+      <li><a href="/admin/index.html">📊 Dashboard</a></li>
+      <li><a href="/admin/products.html" class="active">📦 Products</a></li>
+      <li><a href="/admin/orders.html">🛒 Orders</a></li>
+      <li><a href="/admin/users.html">👥 Users</a></li>
+      <li><a href="/admin/news.html">📰 News</a></li>
+      <li><a href="/admin/coupons.html">🎟 Coupons</a></li>
+      <li><a href="/index.html">🌐 View Site</a></li>
+      <li><a href="#" id="admin-logout">🚪 Logout</a></li>
+    </ul>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="admin-hamburger" id="admin-hamburger">☰</button>
+        <h1 class="admin-title">📦 Mahsulotlar</h1>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="theme-toggle" id="theme-toggle">🌙</button>
+        <button class="btn btn-primary" id="add-product-btn">+ Qo'shish</button>
+      </div>
+    </div>
+
+    <!-- Product Form -->
+    <div id="product-form-wrap" style="display:none;margin-bottom:1.5rem">
+      <div class="admin-form-card">
+        <h3 id="form-title" style="margin-bottom:1.25rem;font-weight:700">Mahsulot qo'shish</h3>
+        <form id="product-form">
+          <input type="hidden" id="product-id">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nomi *</label><input type="text" id="p-name" class="form-control" required></div>
+            <div class="form-group"><label class="form-label">Kategoriya *</label><input type="text" id="p-category" class="form-control" required placeholder="Electronics, Clothing..."></div>
+          </div>
+          <div class="form-group"><label class="form-label">Tavsif</label><textarea id="p-description" class="form-control" rows="3"></textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Narx ($) *</label><input type="number" id="p-price" class="form-control" min="0" step="0.01" required></div>
+            <div class="form-group"><label class="form-label">Chegirma (%)</label><input type="number" id="p-discount" class="form-control" min="0" max="100" value="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Soni</label><input type="number" id="p-stock" class="form-control" min="0" value="0"></div>
+            <div class="form-group"><label class="form-label">Rasm URL (yoki yuklang)</label><input type="text" id="p-image-url" class="form-control" placeholder="https://..."></div>
+          </div>
+          <div class="form-group"><label class="form-label">Rasm fayl</label><input type="file" id="p-image" class="form-control" accept="image/*"></div>
+          <div style="display:flex;gap:1.5rem;margin-bottom:1rem">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer"><input type="checkbox" id="p-featured" style="accent-color:var(--primary)"> ⭐ Featured</label>
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer"><input type="checkbox" id="p-sale" style="accent-color:var(--primary)"> 🔥 On Sale</label>
+          </div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <button type="submit" class="btn btn-primary" id="save-product-btn">💾 Saqlash</button>
+            <button type="button" class="btn btn-ghost" id="cancel-product-btn">Bekor qilish</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Rasm</th><th>Nomi</th><th>Kategoriya</th><th>Narx</th><th>Chegirma</th><th>Soni</th><th>Featured</th><th>Sale</th><th>Amallar</th></tr></thead>
+        <tbody id="products-tbody">
+          <tr><td colspan="9" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="products-pagination" class="pagination"></div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  Theme.init();
+  if (!Auth.requireAdmin()) {}
+
+  document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-hamburger').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  });
+  document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.getElementById('admin-sidebar').classList.remove('open');
+    this.classList.remove('open');
+  });
+
+  var currentPage = 1;
+  if (new URLSearchParams(window.location.search).get('action') === 'add') showForm();
+  loadProducts(1);
+
+  async function loadProducts(page) {
+    currentPage = page;
+    try {
+      var data = await api.get('/products?page=' + page + '&limit=15');
+      var tbody = document.getElementById('products-tbody');
+      tbody.innerHTML = data.products.map(function(p) {
+        var imgSrc = p.image ? (p.image.startsWith('http') ? p.image : 'http://localhost:5000' + p.image) : null;
+        return '<tr>' +
+          '<td>' + (imgSrc ? '<img src="' + imgSrc + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px">' : '🛍️') + '</td>' +
+          '<td><strong>' + p.name + '</strong></td>' +
+          '<td><span style="background:rgba(124,58,237,.1);color:var(--primary);padding:.2rem .6rem;border-radius:20px;font-size:.78rem;font-weight:600">' + p.category + '</span></td>' +
+          '<td><strong>$' + p.price.toFixed(2) + '</strong></td>' +
+          '<td>' + (p.discount > 0 ? '<span class="badge badge-sale">-' + p.discount + '%</span>' : '—') + '</td>' +
+          '<td>' + p.stock + '</td>' +
+          '<td>' + (p.isFeatured ? '✅' : '—') + '</td>' +
+          '<td>' + (p.isOnSale ? '🔥' : '—') + '</td>' +
+          '<td style="white-space:nowrap">' +
+          '<button class="btn btn-sm btn-ghost edit-btn" data-id="' + p._id + '" style="margin-right:.25rem">✏️</button>' +
+          '<button class="btn btn-sm btn-danger del-btn" data-id="' + p._id + '">🗑</button>' +
+          '</td></tr>';
+      }).join('') || '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)">Mahsulot yo\'q</td></tr>';
+
+      renderPagination(data.page, data.pages);
+      attachHandlers();
+    } catch(e) { Toast.error(e.message); }
+  }
+
+  function renderPagination(page, pages) {
+    var el = document.getElementById('products-pagination');
+    if (pages <= 1) { el.innerHTML = ''; return; }
+    var html = '';
+    for (var i = 1; i <= pages; i++) html += '<button class="page-btn' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+    el.innerHTML = html;
+    el.querySelectorAll('.page-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { loadProducts(parseInt(this.dataset.page)); });
+    });
+  }
+
+  function attachHandlers() {
+    document.querySelectorAll('.del-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        if (!confirm('O\'chirishni tasdiqlaysizmi?')) return;
+        try { await api.delete('/products/' + this.dataset.id); Toast.success('O\'chirildi'); loadProducts(currentPage); }
+        catch(e) { Toast.error(e.message); }
+      });
+    });
+    document.querySelectorAll('.edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        try {
+          var data = await api.get('/products/' + this.dataset.id);
+          var p = data.product;
+          document.getElementById('product-id').value = p._id;
+          document.getElementById('p-name').value = p.name;
+          document.getElementById('p-category').value = p.category;
+          document.getElementById('p-description').value = p.description || '';
+          document.getElementById('p-price').value = p.price;
+          document.getElementById('p-discount').value = p.discount;
+          document.getElementById('p-stock').value = p.stock;
+          document.getElementById('p-image-url').value = p.image && p.image.startsWith('http') ? p.image : '';
+          document.getElementById('p-featured').checked = p.isFeatured;
+          document.getElementById('p-sale').checked = p.isOnSale;
+          document.getElementById('form-title').textContent = 'Mahsulotni tahrirlash';
+          showForm();
+        } catch(e) { Toast.error(e.message); }
+      });
+    });
+  }
+
+  function showForm() {
+    document.getElementById('product-form-wrap').style.display = 'block';
+    document.getElementById('product-form-wrap').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  document.getElementById('add-product-btn').addEventListener('click', function() {
+    document.getElementById('product-form').reset();
+    document.getElementById('product-id').value = '';
+    document.getElementById('form-title').textContent = 'Mahsulot qo\'shish';
+    showForm();
+  });
+  document.getElementById('cancel-product-btn').addEventListener('click', function() {
+    document.getElementById('product-form-wrap').style.display = 'none';
+  });
+
+  document.getElementById('product-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var id = document.getElementById('product-id').value;
+    var fd = new FormData();
+    fd.append('name', document.getElementById('p-name').value);
+    fd.append('category', document.getElementById('p-category').value);
+    fd.append('description', document.getElementById('p-description').value);
+    fd.append('price', document.getElementById('p-price').value);
+    fd.append('discount', document.getElementById('p-discount').value);
+    fd.append('stock', document.getElementById('p-stock').value);
+    fd.append('isFeatured', document.getElementById('p-featured').checked);
+    fd.append('isOnSale', document.getElementById('p-sale').checked);
+    // URL image
+    var imgUrl = document.getElementById('p-image-url').value.trim();
+    if (imgUrl) fd.append('imageUrl', imgUrl);
+    // File image
+    var imgFile = document.getElementById('p-image').files[0];
+    if (imgFile) fd.append('image', imgFile);
+    try {
+      if (id) { await api.putForm('/products/' + id, fd); Toast.success('Yangilandi!'); }
+      else { await api.postForm('/products', fd); Toast.success('Qo\'shildi!'); }
+      document.getElementById('product-form-wrap').style.display = 'none';
+      loadProducts(currentPage);
+    } catch(e) { Toast.error(e.message); }
+  });
+</script>
+</body>
+</html>

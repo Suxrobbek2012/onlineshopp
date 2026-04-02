@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOP — News</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem}
+    .news-card{cursor:pointer;transition:all var(--transition)}
+    .news-img{width:100%;height:200px;object-fit:cover;background:var(--border);transition:transform var(--transition-slow)}
+    .news-card:hover .news-img{transform:scale(1.03)}
+    .news-img-ph{width:100%;height:200px;background:linear-gradient(135deg,var(--border),var(--bg));display:flex;align-items:center;justify-content:center;font-size:3rem}
+    .news-body{padding:1.25rem}
+    .news-date{color:var(--text-muted);font-size:.78rem;margin-bottom:.4rem}
+    .news-title{font-weight:700;font-size:1rem;margin-bottom:.4rem;line-height:1.4}
+    .news-excerpt{color:var(--text-muted);font-size:.875rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .article-view{display:none}
+    .article-img{width:100%;max-height:420px;object-fit:cover;border-radius:var(--radius);margin-bottom:1.5rem}
+    .article-content{line-height:1.85;color:var(--text);font-size:1rem}
+    @media(max-width:600px){
+      .news-grid{grid-template-columns:1fr}
+      .news-img,.news-img-ph{height:180px}
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <div class="container section">
+    <!-- List view -->
+    <div id="list-view">
+      <h1 class="section-title" data-i18n="news.title">Yangiliklar</h1>
+      <div id="news-grid" class="news-grid">
+        <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+      <div id="news-pagination" class="pagination"></div>
+    </div>
+    <!-- Article view -->
+    <div id="article-view" class="article-view">
+      <button class="btn btn-secondary mb-3" id="back-btn">← <span data-i18n="news.back">Orqaga</span></button>
+      <div id="article-content"></div>
+    </div>
+  </div>
+  <footer><div class="container"><p>© 2026 SHOP</p></div></footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    Theme.init();
+    I18N.init().then(function() { Auth.updateNavbar(); CartUI.updateBadge(); loadNews(1); });
+
+    async function loadNews(page) {
+      try {
+        var data = await api.get('/news?page=' + page + '&limit=9');
+        var grid = document.getElementById('news-grid');
+        if (!data.articles.length) { grid.innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1">No news yet</p>'; return; }
+        grid.innerHTML = data.articles.map(function(a) {
+          var imgSrc = a.image ? 'http://localhost:5000' + a.image : null;
+          return '<div class="card news-card" data-id="' + a._id + '">' +
+            (imgSrc ? '<img class="news-img" src="' + imgSrc + '" alt="' + a.title + '">' : '<div class="news-img-ph">📰</div>') +
+            '<div class="news-body">' +
+            '<div class="news-date">' + new Date(a.createdAt).toLocaleDateString() + (a.author ? ' · ' + a.author.fullName : '') + '</div>' +
+            '<div class="news-title">' + a.title + '</div>' +
+            '<div class="news-excerpt">' + (a.excerpt || a.content.substring(0, 120) + '...') + '</div>' +
+            '<button class="btn btn-secondary btn-sm mt-2 read-more" data-id="' + a._id + '" data-i18n="news.read_more">Ko\'proq o\'qish</button>' +
+            '</div></div>';
+        }).join('');
+
+        // Pagination
+        var pages = Math.ceil(data.total / 9);
+        var pagEl = document.getElementById('news-pagination');
+        if (pages > 1) {
+          var html = '';
+          for (var i = 1; i <= pages; i++) html += '<button class="page-btn' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+          pagEl.innerHTML = html;
+          pagEl.querySelectorAll('.page-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() { loadNews(parseInt(this.dataset.page)); });
+          });
+        }
+
+        document.querySelectorAll('.read-more').forEach(function(btn) {
+          btn.addEventListener('click', function(e) { e.stopPropagation(); loadArticle(this.dataset.id); });
+        });
+        document.querySelectorAll('.news-card').forEach(function(card) {
+          card.addEventListener('click', function() { loadArticle(this.dataset.id); });
+        });
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    async function loadArticle(id) {
+      try {
+        var data = await api.get('/news/' + id);
+        var a = data.article;
+        var imgSrc = a.image ? 'http://localhost:5000' + a.image : null;
+        document.getElementById('article-content').innerHTML =
+          (imgSrc ? '<img class="article-img" src="' + imgSrc + '" alt="' + a.title + '">' : '') +
+          '<h1 style="font-size:1.8rem;font-weight:800;margin-bottom:.5rem">' + a.title + '</h1>' +
+          '<div style="color:var(--text-muted);margin-bottom:1.5rem">' + new Date(a.createdAt).toLocaleDateString() + (a.author ? ' · ' + a.author.fullName : '') + '</div>' +
+          '<div class="article-content">' + a.content.replace(/\n/g, '<br>') + '</div>';
+        document.getElementById('list-view').style.display = 'none';
+        document.getElementById('article-view').style.display = 'block';
+        window.scrollTo(0, 0);
+      } catch(e) { Toast.error(e.message); }
+    }
+
+    document.getElementById('back-btn').addEventListener('click', function() {
+      document.getElementById('list-view').style.display = 'block';
+      document.getElementById('article-view').style.display = 'none';
+    });
+  </script>
+<script src="js/bg-animation.js"></script>
+</body>
+</html>
