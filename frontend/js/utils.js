@@ -103,6 +103,11 @@ function renderStars(rating) {
 }
 
 // ===== Product Card =====
+// Image base URL
+var IMG_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : '';
+
 function renderProductCard(product, favorites) {
   favorites = favorites || [];
   var isFav = favorites.indexOf(product._id) !== -1;
@@ -110,13 +115,12 @@ function renderProductCard(product, favorites) {
     ? (product.price * (1 - product.discount / 100)).toFixed(2)
     : product.price.toFixed(2);
 
-  // Support both uploaded images and external URLs
   var imgSrc = null;
   if (product.image) {
     if (product.image.startsWith('http')) {
       imgSrc = product.image;
     } else {
-      imgSrc = 'http://localhost:5000' + product.image;
+      imgSrc = IMG_BASE + product.image;
     }
   }
 
