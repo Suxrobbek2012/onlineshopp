@@ -20,6 +20,10 @@
       "dest": "backend/server.js"
     },
     {
+      "src": "/(.*\\.(html|css|js|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf))",
+      "dest": "frontend/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "frontend/$1"
     }

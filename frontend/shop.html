@@ -190,17 +190,19 @@
 
     function attachHandlers() {
       document.querySelectorAll('.add-to-cart-btn').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
           if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
           try {
             await api.post('/cart', { productId: this.dataset.id, quantity: 1 });
-            Toast.success('Added to cart!');
+            Toast.success('Savatga qo\'shildi!');
             CartUI.updateBadge();
           } catch(e) { Toast.error(e.message); }
         });
       });
       document.querySelectorAll('.fav-btn').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
           if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
           var user = Auth.getUser();
           try {
@@ -210,9 +212,24 @@
           } catch(e) { Toast.error(e.message); }
         });
       });
+      // Card click → product modal
+      document.querySelectorAll('.product-card').forEach(function(card) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('button')) return;
+          ProductModal.open(this.dataset.id);
+        });
+      });
     }
 
-    document.getElementById('apply-filters').addEventListener('click', function() { loadProducts(1); });
+    document.getElementById('apply-filters').addEventListener('click', function() {
+      loadProducts(1);
+      // Mobile da filterni yop
+      var panel = document.querySelector('.filters-panel');
+      var btn = document.getElementById('filter-toggle-btn');
+      if (panel) panel.classList.remove('open');
+      if (btn) btn.textContent = '🔽 Filter';
+    });
     document.getElementById('reset-filters').addEventListener('click', function() {
       document.getElementById('filter-category').value = '';
       document.getElementById('min-price').value = '';

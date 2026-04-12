@@ -42,7 +42,8 @@ const Auth = {
 
   requireAuth() {
     if (!Auth.isLoggedIn()) {
-      window.location.href = '/login.html';
+      var base = window.location.pathname.includes('/admin/') ? '../' : '';
+      window.location.href = base + 'login.html';
       return false;
     }
     return true;
@@ -50,9 +51,22 @@ const Auth = {
 
   requireAdmin() {
     if (!Auth.isLoggedIn() || !Auth.isAdmin()) {
-      window.location.href = '/login.html';
+      var base = window.location.pathname.includes('/admin/') ? '../' : '';
+      window.location.href = base + 'login.html';
       return false;
     }
+    // Server-side verify
+    api.get('/auth/me').then(function(data) {
+      if (!data.user || data.user.role !== 'admin') {
+        Auth.clearSession();
+        var base = window.location.pathname.includes('/admin/') ? '../' : '';
+        window.location.href = base + 'login.html';
+      }
+    }).catch(function() {
+      Auth.clearSession();
+      var base = window.location.pathname.includes('/admin/') ? '../' : '';
+      window.location.href = base + 'login.html';
+    });
     return true;
   }
 };

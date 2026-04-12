@@ -30,5 +30,7 @@ exports.protect = async (req, res, next) => {
 // Admin only
 exports.adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') return next();
+  // Log unauthorized access attempt
+  console.warn(`⚠️  Unauthorized admin access attempt: ${req.user?.username || 'unknown'} → ${req.method} ${req.originalUrl}`);
   return res.status(403).json({ success: false, message: 'Admin access required' });
 };

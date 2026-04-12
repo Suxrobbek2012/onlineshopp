@@ -102,7 +102,7 @@
 
         <!-- Settings tab -->
         <div class="tab-content card" id="tab-settings" style="padding:1.5rem">
-          <h3 class="mb-2" data-i18n="profile.change_password">Parolni o'zgartirish</h3>
+          <h3 class="mb-2">Parolni o'zgartirish</h3>
           <form id="pw-form">
             <div class="form-group"><label class="form-label">New Password</label>
               <div class="password-wrapper">
@@ -117,8 +117,8 @@
           </form>
           <hr style="margin:2rem 0;border-color:var(--border)">
           <h3 class="mb-2" style="color:#dc3545" data-i18n="profile.delete_account">Hisobni o'chirish</h3>
-          <p class="text-muted mb-2">This action is irreversible.</p>
-          <button class="btn btn-danger" id="delete-account-btn">Delete My Account</button>
+          <p class="text-muted mb-2">Bu amalni qaytarib bo'lmaydi.</p>
+          <button class="btn btn-danger" id="delete-account-btn">Hisobni o'chirish</button>
         </div>
       </main>
     </div>
@@ -158,8 +158,9 @@
       document.getElementById('sidebar-name').textContent = u.fullName;
       document.getElementById('sidebar-username').textContent = '@' + u.username;
       var avatarEl = document.getElementById('avatar-display');
+      var imgBase = window.IMG_SERVER || 'http://localhost:5000';
       if (u.avatar) {
-        avatarEl.innerHTML = '<img class="avatar-img" src="http://localhost:5000' + u.avatar + '" alt="avatar">';
+        avatarEl.innerHTML = '<img class="avatar-img" src="' + (u.avatar.startsWith('http') ? u.avatar : imgBase + u.avatar) + '" alt="avatar">';
       } else {
         avatarEl.innerHTML = '<div class="avatar-placeholder">' + u.fullName.charAt(0).toUpperCase() + '</div>';
       }
@@ -274,15 +275,17 @@
       if (np !== cp) { Toast.error('Passwords do not match'); return; }
       if (np.length < 6) { Toast.error('Password must be at least 6 characters'); return; }
       try {
-        await api.putForm('/users/' + userData._id, Object.assign(new FormData(), { newPassword: np }));
-        Toast.success('Password updated!');
+        var fd = new FormData();
+        fd.append('newPassword', np);
+        await api.putForm('/users/' + userData._id, fd);
+        Toast.success('Parol yangilandi!');
         this.reset();
       } catch(e) { Toast.error(e.message); }
     });
 
     // Delete account
     document.getElementById('delete-account-btn').addEventListener('click', async function() {
-      if (!confirm('Are you sure? This cannot be undone.')) return;
+      if (!confirm('Hisobni o\'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo\'lmaydi!')) return;
       try {
         await api.delete('/users/' + userData._id);
         Auth.clearSession();

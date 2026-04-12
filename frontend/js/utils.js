@@ -103,8 +103,8 @@ function renderStars(rating) {
 }
 
 // ===== Product Card =====
-// Image base URL
-var IMG_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+// Image base URL — api.js dan olinadi
+var IMG_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
   ? 'http://localhost:5000'
   : '';
 
@@ -240,3 +240,155 @@ window.renderProductCard = renderProductCard;
 window.startCountdown = startCountdown;
 window.COUNTRY_CODES = COUNTRY_CODES;
 window.buildCountrySelect = buildCountrySelect;
+
+// ===== Product Detail Modal =====
+var ProductModal = {
+  el: null,
+
+  init: function() {
+    if (document.getElementById('product-detail-modal')) return;
+    var html =
+      '<div class="product-modal-overlay" id="product-detail-modal">' +
+        '<div class="product-modal" id="product-modal-inner">' +
+          '<button class="product-modal-close" id="product-modal-close">✕</button>' +
+          '<div id="product-modal-img-wrap"></div>' +
+          '<div class="product-modal-body">' +
+            '<span class="product-modal-category" id="pm-category"></span>' +
+            '<div class="product-modal-name" id="pm-name"></div>' +
+            '<div class="product-modal-rating" id="pm-rating"></div>' +
+            '<div class="product-modal-price" id="pm-price"></div>' +
+            '<div class="product-modal-desc" id="pm-desc"></div>' +
+            '<div class="product-modal-stock" id="pm-stock"></div>' +
+            '<div class="product-modal-qty">' +
+              '<label>Miqdor:</label>' +
+              '<div class="qty-input-wrap">' +
+                '<button id="pm-qty-minus">−</button>' +
+                '<input type="number" id="pm-qty" value="1" min="1" max="99">' +
+                '<button id="pm-qty-plus">+</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="product-modal-actions">' +
+              '<button class="btn btn-primary" id="pm-add-cart">🛒 Savatga qo\'shish</button>' +
+              '<button class="btn btn-ghost" id="pm-fav">🤍</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+    this.el = document.getElementById('product-detail-modal');
+
+    // Close handlers
+    document.getElementById('product-modal-close').addEventListener('click', function() {
+      ProductModal.close();
+    });
+    this.el.addEventListener('click', function(e) {
+      if (e.target === ProductModal.el) ProductModal.close();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') ProductModal.close();
+    });
+
+    // Qty controls
+    document.getElementById('pm-qty-minus').addEventListener('click', function() {
+      var inp = document.getElementById('pm-qty');
+      if (parseInt(inp.value) > 1) inp.value = parseInt(inp.value) - 1;
+    });
+    document.getElementById('pm-qty-plus').addEventListener('click', function() {
+      var inp = document.getElementById('pm-qty');
+      if (parseInt(inp.value) < 99) inp.value = parseInt(inp.value) + 1;
+    });
+  },
+
+  open: async function(productId) {
+    this.init();
+    try {
+      var data = await api.get('/products/' + productId);
+      var p = data.product;
+      var IMG_BASE = window.IMG_SERVER || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : '');
+      var imgSrc = p.image ? (p.image.startsWith('http') ? p.image : IMG_BASE + p.image) : null;
+      var finalPrice = p.discount > 0 ? (p.price * (1 - p.discount / 100)).toFixed(2) : p.price.toFixed(2);
+
+      // Image
+      document.getElementById('product-modal-img-wrap').innerHTML = imgSrc
+        ? '<img class="product-modal-img" src="' + imgSrc + '" alt="' + p.name + '">'
+        : '<div class="product-modal-img-ph">🛍️</div>';
+
+      // Info
+      document.getElementById('pm-category').textContent = p.category;
+      document.getElementById('pm-name').textContent = p.name;
+      document.getElementById('pm-rating').innerHTML =
+        renderStars(p.rating) + ' <span>(' + p.reviewCount + ' ta sharh)</span>';
+
+      var priceHTML = '<span class="price-final">$' + finalPrice + '</span>';
+      if (p.discount > 0) {
+        priceHTML += '<span class="price-original">$' + p.price.toFixed(2) + '</span>';
+        priceHTML += '<span class="price-badge">-' + p.discount + '%</span>';
+      }
+      document.getElementById('pm-price').innerHTML = priceHTML;
+      document.getElementById('pm-desc').textContent = p.description || 'Tavsif mavjud emas.';
+
+      var stockEl = document.getElementById('pm-stock');
+      if (p.stock > 0) {
+        stockEl.textContent = '✅ Mavjud (' + p.stock + ' ta)';
+        stockEl.className = 'product-modal-stock in';
+      } else {
+        stockEl.textContent = '❌ Tugagan';
+        stockEl.className = 'product-modal-stock out';
+      }
+
+      // Reset qty
+      document.getElementById('pm-qty').value = 1;
+
+      // Fav state
+      var user = Auth.getUser();
+      var favs = user ? (user.favorites || []) : [];
+      var isFav = favs.indexOf(p._id) !== -1 || favs.some(function(f) { return (f._id || f) === p._id; });
+      var favBtn = document.getElementById('pm-fav');
+      favBtn.textContent = isFav ? '❤️' : '🤍';
+      favBtn.onclick = async function() {
+        if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+        try {
+          await api.post('/users/' + user.id + '/favorites/' + p._id, {});
+          isFav = !isFav;
+          favBtn.textContent = isFav ? '❤️' : '🤍';
+          // Update card fav buttons
+          document.querySelectorAll('.fav-btn[data-id="' + p._id + '"]').forEach(function(b) {
+            b.classList.toggle('active', isFav);
+            b.textContent = isFav ? '❤️' : '🤍';
+          });
+        } catch(e) { Toast.error(e.message); }
+      };
+
+      // Add to cart
+      var addBtn = document.getElementById('pm-add-cart');
+      addBtn.onclick = async function() {
+        if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+        var qty = parseInt(document.getElementById('pm-qty').value) || 1;
+        addBtn.disabled = true;
+        try {
+          await api.post('/cart', { productId: p._id, quantity: qty });
+          Toast.success(qty + ' ta mahsulot savatga qo\'shildi!');
+          CartUI.updateBadge();
+          addBtn.textContent = '✓ Qo\'shildi';
+          setTimeout(function() {
+            addBtn.disabled = false;
+            addBtn.textContent = '🛒 Savatga qo\'shish';
+          }, 1500);
+        } catch(e) { Toast.error(e.message); addBtn.disabled = false; }
+      };
+
+      // Open
+      this.el.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    } catch(e) {
+      Toast.error('Mahsulot ma\'lumotlari yuklanmadi');
+    }
+  },
+
+  close: function() {
+    if (this.el) this.el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+};
+
+window.ProductModal = ProductModal;

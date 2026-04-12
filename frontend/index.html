@@ -94,7 +94,7 @@
         <span class="modal-title">🎉 <span data-i18n="cart.order_success">Buyurtma berildi!</span></span>
         <button class="modal-close">✕</button>
       </div>
-      <p style="color:var(--text-muted);margin-bottom:1.5rem" data-i18n="cart.order_success_sub">Buyurtmangiz holati haqida xabar beramiz.</p>
+      <p style="color:var(--text-muted);margin-bottom:1.5rem">Buyurtmangiz holati haqida Telegram orqali xabar beramiz.</p>
       <a href="shop.html" class="btn btn-primary btn-block" data-i18n="cart.continue_shopping">Xaridni davom ettirish</a>
     </div>
   </div>
@@ -173,11 +173,11 @@
           } catch(e) { Toast.error(e.message); }
         });
       });
-      // Click on card → go to shop
+      // Click on card → open product modal
       document.querySelectorAll('.product-card').forEach(function(card) {
         card.addEventListener('click', function(e) {
           if (e.target.closest('button')) return;
-          window.location.href = 'shop.html';
+          ProductModal.open(this.dataset.id);
         });
       });
     }

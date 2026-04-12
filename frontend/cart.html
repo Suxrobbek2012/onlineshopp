@@ -69,10 +69,10 @@
         <span class="modal-title">🎉 <span data-i18n="cart.order_success">Buyurtma muvaffaqiyatli berildi!</span></span>
         <button class="modal-close">✕</button>
       </div>
-      <p style="color:var(--text-muted)">Your order has been placed. We'll notify you about updates.</p>
+      <p style="color:var(--text-muted)">Buyurtmangiz qabul qilindi. Holat haqida xabar beramiz.</p>
       <div class="mt-3 flex gap-1">
-        <a href="shop.html" class="btn btn-primary" style="flex:1">Continue Shopping</a>
-        <a href="profile.html" class="btn btn-secondary" style="flex:1">My Orders</a>
+        <a href="shop.html" class="btn btn-primary" style="flex:1">Xaridni davom ettirish</a>
+        <a href="profile.html" class="btn btn-secondary" style="flex:1">Buyurtmalarim</a>
       </div>
     </div>
   </div>
@@ -121,7 +121,7 @@
         var p = item.product;
         if (!p) return '';
         var price = p.discount > 0 ? (p.price * (1 - p.discount / 100)).toFixed(2) : p.price.toFixed(2);
-        var imgSrc = p.image ? 'http://localhost:5000' + p.image : null;
+        var imgSrc = p.image ? (p.image.startsWith('http') ? p.image : (window.IMG_SERVER || 'http://localhost:5000') + p.image) : null;
         return '<div class="cart-item" data-item-id="' + item._id + '">' +
           (imgSrc ? '<img src="' + imgSrc + '" alt="' + p.name + '">' : '<div class="cart-img-ph">🛍️</div>') +
           '<div class="cart-item-info">' +

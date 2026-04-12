@@ -2,6 +2,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { initBot } = require('./bot/bot');
 
@@ -10,39 +12,48 @@ const app = express();
 // Connect DB
 connectDB();
 
-// CORS — allow all localhost ports + file://
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    // Allow any localhost or 127.0.0.1 port
-    if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
-      return callback(null, true);
-    }
-    // Allow file:// protocol (opening HTML directly)
-    if (origin === 'null') return callback(null, true);
-    callback(null, true); // allow all for development
-  },
-  credentials: true
-}));
+// Security headers
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS
+app.use(cors({ origin: true, credentials: true }));
+
+// Rate limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // max 20 login attempts per 15 min
+  message: { success: false, message: 'Too many login attempts, please try again in 15 minutes.' }
+});
+
+app.use('/api/', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // Body parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
+app.use('/api/auth',     require('./routes/auth'));
+app.use('/api/users',    require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/news', require('./routes/news'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/orders',   require('./routes/orders'));
+app.use('/api/cart',     require('./routes/cart'));
+app.use('/api/news',     require('./routes/news'));
+app.use('/api/admin',    require('./routes/admin'));
 
-// Coupon validate (public endpoint)
+// Coupon validate (public)
 app.post('/api/coupons/validate', require('./controllers/adminController').validateCoupon);
 
 // Health check

@@ -95,7 +95,7 @@
   if (!Auth.requireAdmin()) {}
 
   document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
-  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '../login.html'; });
   document.getElementById('admin-hamburger').addEventListener('click', function() {
     document.getElementById('admin-sidebar').classList.toggle('open');
     document.getElementById('sidebar-overlay').classList.toggle('open');
@@ -115,7 +115,7 @@
       var data = await api.get('/products?page=' + page + '&limit=15');
       var tbody = document.getElementById('products-tbody');
       tbody.innerHTML = data.products.map(function(p) {
-        var imgSrc = p.image ? (p.image.startsWith('http') ? p.image : 'http://localhost:5000' + p.image) : null;
+        var imgSrc = p.image ? (p.image.startsWith('http') ? p.image : (window.IMG_SERVER||'http://localhost:5000') + p.image) : null;
         return '<tr>' +
           '<td>' + (imgSrc ? '<img src="' + imgSrc + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px">' : '🛍️') + '</td>' +
           '<td><strong>' + p.name + '</strong></td>' +

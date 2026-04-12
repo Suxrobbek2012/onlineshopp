@@ -7,7 +7,6 @@
     '<nav class="navbar">' +
     '<div class="nav-container">' +
     '<a href="' + base + 'index.html" class="nav-logo">🛍 SHOP</a>' +
-    '<button class="hamburger" id="hamburger" aria-label="Menu">☰</button>' +
     '<ul class="nav-links" id="nav-links">' +
     '<li><a href="' + base + 'index.html" data-i18n="nav.home">Bosh sahifa</a></li>' +
     '<li><a href="' + base + 'shop.html" data-i18n="nav.shop">Do\'kon</a></li>' +
@@ -30,6 +29,7 @@
     '<button class="lang-btn" data-lang="en">🇬🇧 EN</button>' +
     '</div>' +
     '<button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>' +
+    '<button class="hamburger" id="hamburger" aria-label="Menu">☰</button>' +
     '</div>' +
     '</div>' +
     '</nav>';
@@ -44,18 +44,36 @@
     if (href === path) a.classList.add('active');
   });
 
-  // Hamburger toggle
-  document.addEventListener('click', function(e) {
-    if (e.target.id === 'hamburger' || e.target.closest('#hamburger')) {
-      var links = document.getElementById('nav-links');
-      if (links) links.classList.toggle('open');
-    }
-    // Close menu on link click (mobile)
-    if (e.target.closest('.nav-links a')) {
-      var links = document.getElementById('nav-links');
-      if (links) links.classList.remove('open');
-    }
-  });
+  // Hamburger toggle — mustahkam handler
+  function setupHamburger() {
+    var hamburger = document.getElementById('hamburger');
+    var navLinks  = document.getElementById('nav-links');
+    if (!hamburger || !navLinks) return;
+
+    hamburger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = navLinks.classList.toggle('open');
+      hamburger.textContent = isOpen ? '✕' : '☰';
+      hamburger.setAttribute('aria-expanded', isOpen);
+    });
+
+    // Close on link click
+    navLinks.querySelectorAll('a, button').forEach(function(el) {
+      el.addEventListener('click', function() {
+        navLinks.classList.remove('open');
+        hamburger.textContent = '☰';
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function(e) {
+      if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+        navLinks.classList.remove('open');
+        hamburger.textContent = '☰';
+      }
+    });
+  }
+  setupHamburger();
 
   // Theme toggle
   document.addEventListener('click', function(e) {

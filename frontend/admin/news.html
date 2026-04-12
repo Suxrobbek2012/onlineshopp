@@ -74,7 +74,7 @@
 <script>
   Theme.init(); if (!Auth.requireAdmin()) {}
   document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
-  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '../login.html'; });
   document.getElementById('admin-hamburger').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); });
   document.getElementById('sidebar-overlay').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.remove('open'); this.classList.remove('open'); });
 
@@ -86,7 +86,7 @@
       var tbody = document.getElementById('news-tbody');
       if (!data.articles.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">Yangilik yo\'q</td></tr>'; return; }
       tbody.innerHTML = data.articles.map(function(a) {
-        var imgSrc = a.image ? (a.image.startsWith('http') ? a.image : 'http://localhost:5000' + a.image) : null;
+        var imgSrc = a.image ? (a.image.startsWith('http') ? a.image : (window.IMG_SERVER||'http://localhost:5000') + a.image) : null;
         return '<tr>' +
           '<td>' + (imgSrc ? '<img src="' + imgSrc + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px">' : '📰') + '</td>' +
           '<td><strong>' + a.title + '</strong></td>' +

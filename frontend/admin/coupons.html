@@ -78,7 +78,7 @@
 <script>
   Theme.init(); if (!Auth.requireAdmin()) {}
   document.getElementById('theme-toggle').addEventListener('click', function() { Theme.toggle(); });
-  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '/login.html'; });
+  document.getElementById('admin-logout').addEventListener('click', function(e) { e.preventDefault(); Auth.clearSession(); window.location.href = '../login.html'; });
   document.getElementById('admin-hamburger').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); });
   document.getElementById('sidebar-overlay').addEventListener('click', function() { document.getElementById('admin-sidebar').classList.remove('open'); this.classList.remove('open'); });
 

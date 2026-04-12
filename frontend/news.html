@@ -58,7 +58,7 @@
         var grid = document.getElementById('news-grid');
         if (!data.articles.length) { grid.innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1">No news yet</p>'; return; }
         grid.innerHTML = data.articles.map(function(a) {
-          var imgSrc = a.image ? 'http://localhost:5000' + a.image : null;
+          var imgSrc = a.image ? (a.image.startsWith('http') ? a.image : (window.IMG_SERVER||'http://localhost:5000') + a.image) : null;
           return '<div class="card news-card" data-id="' + a._id + '">' +
             (imgSrc ? '<img class="news-img" src="' + imgSrc + '" alt="' + a.title + '">' : '<div class="news-img-ph">📰</div>') +
             '<div class="news-body">' +
@@ -94,7 +94,7 @@
       try {
         var data = await api.get('/news/' + id);
         var a = data.article;
-        var imgSrc = a.image ? 'http://localhost:5000' + a.image : null;
+        var imgSrc = a.image ? (a.image.startsWith('http') ? a.image : (window.IMG_SERVER||'http://localhost:5000') + a.image) : null;
         document.getElementById('article-content').innerHTML =
           (imgSrc ? '<img class="article-img" src="' + imgSrc + '" alt="' + a.title + '">' : '') +
           '<h1 style="font-size:1.8rem;font-weight:800;margin-bottom:.5rem">' + a.title + '</h1>' +

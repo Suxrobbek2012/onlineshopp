@@ -2,90 +2,610 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>SHOP — Kirish</title>
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:    #0a0a0f;
+      --ink2:   #1a1a2e;
+      --paper:  #f5f3ef;
+      --cream:  #ede9e1;
+      --accent: #ff4d00;
+      --accent2:#7c3aed;
+      --muted:  #8a8a9a;
+      --border: rgba(10,10,15,0.1);
+      --card-bg:rgba(255,255,255,0.72);
+      --glow:   rgba(255,77,0,0.18);
+    }
+
+    html { height: 100%; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--paper);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      overflow-x: hidden;
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      flex: 1;
+      background: var(--ink);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      min-height: 100vh;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 80%, rgba(124,58,237,0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(255,77,0,0.25) 0%, transparent 55%);
+    }
+
+    .left-noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+
+    .left-top { position: relative; z-index: 1; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .left-hero { position: relative; z-index: 1; }
+
+    .left-tagline {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 4vw, 3.5rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 1.5rem;
+    }
+    .left-tagline em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .left-desc {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      max-width: 340px;
+    }
+
+    .left-stats {
+      position: relative; z-index: 1;
+      display: flex;
+      gap: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .stat-item {}
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 0.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Floating cards decoration */
+    .deco-card {
+      position: absolute;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      padding: 1rem 1.25rem;
+      z-index: 1;
+      animation: float 6s ease-in-out infinite;
+    }
+    .deco-card:nth-child(1) { top: 28%; right: 8%; animation-delay: 0s; }
+    .deco-card:nth-child(2) { top: 52%; right: 12%; animation-delay: 2s; }
+    .deco-card-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem; }
+    .deco-card-val { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: #fff; }
+    .deco-card-badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: rgba(16,185,129,0.2); color: #10b981;
+      font-size: 0.7rem; font-weight: 600;
+      padding: 0.15rem 0.5rem; border-radius: 20px; margin-top: 0.25rem;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* ── Right panel ── */
+    .right-panel {
+      width: 480px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: var(--paper);
+      position: relative;
+    }
+
+    .right-panel::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-header { margin-bottom: 2.5rem; }
+
+    .login-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255,77,0,0.08);
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,77,0,0.15);
+    }
+
+    .login-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-sub {
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+
+    /* Form */
+    .field { margin-bottom: 1.1rem; }
+
+    .field-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.45rem;
+      letter-spacing: 0.2px;
+    }
+
+    .field-wrap { position: relative; }
+
+    .field-icon {
+      position: absolute;
+      left: 1rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .field-input {
+      width: 100%;
+      height: 50px;
+      padding: 0 1rem 0 2.75rem;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+      -webkit-appearance: none;
+    }
+    .field-input::placeholder { color: #c0bdb8; }
+    .field-input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 4px rgba(124,58,237,0.1);
+      background: #fff;
+    }
+    .field-input:focus + .field-icon,
+    .field-wrap:focus-within .field-icon { color: var(--accent2); }
+
+    .pw-toggle {
+      position: absolute;
+      right: 1rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--muted); font-size: 1rem;
+      cursor: pointer; padding: 0.25rem;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+    .pw-toggle:hover { color: var(--ink); }
+
+    .field-input.has-right { padding-right: 3rem; }
+
+    /* Remember row */
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .remember-label {
+      display: flex; align-items: center; gap: 0.5rem;
+      cursor: pointer; font-size: 0.82rem; color: var(--muted);
+      user-select: none;
+    }
+    .remember-label input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent2);
+      cursor: pointer;
+    }
+
+    /* Submit button */
+    .submit-btn {
+      width: 100%;
+      height: 52px;
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .submit-btn:hover::before { opacity: 1; }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,10,15,0.2); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn span { position: relative; z-index: 1; }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-arrow {
+      position: relative; z-index: 1;
+      font-size: 1rem;
+      transition: transform 0.2s;
+    }
+    .submit-btn:hover .btn-arrow { transform: translateX(3px); }
+
+    /* Divider */
+    .divider {
+      display: flex; align-items: center; gap: 1rem;
+      margin: 1.5rem 0;
+      color: var(--muted); font-size: 0.78rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+
+    /* Register link */
+    .register-link {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .register-link a {
+      color: var(--ink);
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 1px;
+      transition: color 0.2s;
+    }
+    .register-link a:hover { color: var(--accent); }
+
+    /* Spinner */
+    .spin {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      position: relative; z-index: 1;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast-wrap {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .toast-item {
+      background: var(--ink);
+      color: #fff;
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 0.6rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      max-width: 320px;
+      border-left: 3px solid var(--accent);
+    }
+    .toast-item.success { border-left-color: #10b981; }
+    .toast-item.error   { border-left-color: #ef4444; }
+    @keyframes toastIn {
+      from { transform: translateX(110%); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .left-panel { display: none; }
+      .right-panel { width: 100%; min-height: 100vh; padding: 1.5rem 1rem; }
+      .login-box { max-width: 420px; }
+    }
+    @media (max-width: 480px) {
+      .right-panel { padding: 1.25rem 1rem; align-items: flex-start; padding-top: 2rem; }
+      .login-title { font-size: 1.6rem; }
+      .field-input { font-size: 16px; height: 48px; }
+      .submit-btn { height: 50px; }
+    }
+
+    /* Page load animation */
+    .login-box { animation: fadeUp 0.5s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .left-hero { animation: fadeUp 0.6s 0.1s ease both; }
+    .left-stats { animation: fadeUp 0.6s 0.2s ease both; }
+    .deco-card:nth-child(1) { animation: float 6s ease-in-out infinite, fadeUp 0.7s 0.3s ease both; }
+    .deco-card:nth-child(2) { animation: float 6s 2s ease-in-out infinite, fadeUp 0.7s 0.4s ease both; }
+  </style>
 </head>
 <body>
-  <div id="navbar-placeholder"></div>
-  <div class="auth-page">
-    <div class="auth-card animate-fade-up">
-      <div class="auth-logo"><span>🛍 SHOP</span></div>
-      <h1 class="auth-title" data-i18n="auth.login">Kirish</h1>
-      <p class="auth-subtitle">Hisobingizga xush kelibsiz</p>
 
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label" data-i18n="auth.identifier">Foydalanuvchi nomi yoki telefon</label>
-          <input type="text" id="identifier" class="form-control" data-i18n-placeholder="auth.identifier" autocomplete="username" required>
-          <div class="form-error" id="err-identifier"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" data-i18n="auth.password">Parol</label>
-          <div class="password-wrapper">
-            <input type="password" id="password" class="form-control" autocomplete="current-password" required>
-            <button type="button" class="password-toggle" id="pw-toggle">👁</button>
-          </div>
-          <div class="form-error" id="err-password"></div>
-        </div>
-        <div class="form-group flex-between" style="flex-wrap:wrap;gap:.5rem">
-          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.875rem">
-            <input type="checkbox" id="remember-me" style="accent-color:var(--primary)">
-            <span data-i18n="auth.remember_me">Meni eslab qol</span>
-          </label>
-          <a href="#" style="font-size:.875rem;color:var(--primary)" data-i18n="auth.forgot_password">Parolni unutdingizmi?</a>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block mt-2" id="login-btn">
-          <span data-i18n="auth.login">Kirish</span>
-        </button>
-      </form>
+  <!-- Left decorative panel -->
+  <div class="left-panel">
+    <div class="left-noise"></div>
 
-      <div class="auth-divider">yoki</div>
-      <p class="text-center" style="color:var(--text-muted);font-size:.9rem">
-        <span data-i18n="auth.no_account">Hisobingiz yo'qmi?</span>
-        <a href="register.html" style="font-weight:700;margin-left:.3rem" data-i18n="auth.register">Ro'yxatdan o'tish</a>
+    <!-- Floating deco cards -->
+    <div class="deco-card">
+      <div class="deco-card-label">Bugungi buyurtmalar</div>
+      <div class="deco-card-val">+24 ta</div>
+      <div class="deco-card-badge">↑ 12% o'sish</div>
+    </div>
+    <div class="deco-card">
+      <div class="deco-card-label">Faol foydalanuvchilar</div>
+      <div class="deco-card-val">1,240</div>
+      <div class="deco-card-badge">● Jonli</div>
+    </div>
+
+    <div class="left-top">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">🛍</div>
+        <span class="brand-name">SHOP</span>
+      </a>
+    </div>
+
+    <div class="left-hero">
+      <h2 class="left-tagline">
+        Xarid qilish<br>
+        hech qachon<br>
+        bu qadar <em>oson</em><br>
+        bo'lmagan.
+      </h2>
+      <p class="left-desc">
+        Minglab mahsulotlar, eng yaxshi narxlar va tezkor yetkazib berish — barchasi bir joyda.
       </p>
+    </div>
+
+    <div class="left-stats">
+      <div class="stat-item">
+        <div class="stat-num">10K+</div>
+        <div class="stat-label">Mahsulotlar</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">50K+</div>
+        <div class="stat-label">Mijozlar</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">99%</div>
+        <div class="stat-label">Mamnunlik</div>
+      </div>
     </div>
   </div>
 
-  <script src="js/api.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/navbar.js"></script>
-  <script>
-    Theme.init();
-    I18N.init().then(function() { Auth.updateNavbar(); });
-    if (Auth.isLoggedIn()) window.location.href = 'index.html';
+  <!-- Right login panel -->
+  <div class="right-panel">
+    <div class="login-box">
 
+      <div class="login-header">
+        <div class="login-eyebrow">● Xavfsiz kirish</div>
+        <h1 class="login-title">Xush kelibsiz<br>qaytib!</h1>
+        <p class="login-sub">Hisobingizga kirish uchun ma'lumotlaringizni kiriting.</p>
+      </div>
+
+      <form id="login-form" autocomplete="on">
+
+        <div class="field">
+          <label class="field-label" for="identifier">Foydalanuvchi nomi yoki telefon</label>
+          <div class="field-wrap">
+            <span class="field-icon">👤</span>
+            <input
+              type="text"
+              id="identifier"
+              class="field-input"
+              placeholder="username yoki +998901234567"
+              autocomplete="username"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Parol</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input
+              type="password"
+              id="password"
+              class="field-input has-right"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            >
+            <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Parolni ko'rsatish">👁</button>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label class="remember-label">
+            <input type="checkbox" id="remember-me">
+            <span>Meni eslab qol</span>
+          </label>
+        </div>
+
+        <button type="submit" class="submit-btn" id="login-btn">
+          <span>Kirish</span>
+          <span class="btn-arrow">→</span>
+        </button>
+
+      </form>
+
+      <div class="divider">yoki</div>
+
+      <p class="register-link">
+        Hisobingiz yo'qmi?
+        <a href="register.html">Ro'yxatdan o'tish</a>
+      </p>
+
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Simple toast
+    function showToast(msg, type) {
+      var wrap = document.getElementById('toast-wrap');
+      var icons = { success: '✅', error: '❌' };
+      var el = document.createElement('div');
+      el.className = 'toast-item ' + (type || 'info');
+      el.innerHTML = '<span>' + (icons[type] || 'ℹ️') + '</span><span>' + msg + '</span>';
+      wrap.appendChild(el);
+      setTimeout(function() {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(110%)';
+        el.style.transition = '0.3s ease';
+        setTimeout(function() { el.remove(); }, 320);
+      }, 3500);
+    }
+
+    // Redirect if already logged in
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      window.location.href = 'index.html';
+    }
+
+    // Password toggle
     document.getElementById('pw-toggle').addEventListener('click', function() {
       var pw = document.getElementById('password');
       pw.type = pw.type === 'password' ? 'text' : 'password';
       this.textContent = pw.type === 'password' ? '👁' : '🙈';
     });
 
+    // Form submit
     document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       var btn = document.getElementById('login-btn');
       btn.disabled = true;
-      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px"></div>';
+      btn.innerHTML = '<div class="spin"></div>';
+
       try {
         var data = await api.post('/auth/login', {
           identifier: document.getElementById('identifier').value.trim(),
-          password: document.getElementById('password').value
+          password:   document.getElementById('password').value
         });
         Auth.setSession(data.token, data.user);
-        Toast.success(I18N.t('auth.login_success') + ', ' + data.user.fullName + '!');
+        showToast('Xush kelibsiz, ' + data.user.fullName + '! 🎉', 'success');
         setTimeout(function() {
           window.location.href = data.user.role === 'admin' ? 'admin/index.html' : 'index.html';
         }, 700);
       } catch(err) {
-        Toast.error(err.message);
+        showToast(err.message, 'error');
         btn.disabled = false;
-        btn.innerHTML = '<span data-i18n="auth.login">' + I18N.t('auth.login') + '</span>';
+        btn.innerHTML = '<span>Kirish</span><span class="btn-arrow">→</span>';
       }
     });
   </script>
-<script src="js/bg-animation.js"></script>
 </body>
 </html>
