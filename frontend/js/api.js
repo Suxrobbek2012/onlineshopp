@@ -1,18 +1,19 @@
-// API base URL — barcha holatlar uchun
 function getApiBase() {
   const h = window.location.hostname;
-  const proto = window.location.protocol;
-  if (proto === 'file:' || h === '' || h === 'localhost' || h === '127.0.0.1') {
+  // Localda ishlayotgan bo'lsangiz
+  if (h === 'localhost' || h === '127.0.0.1') {
     return 'http://localhost:5000/api';
   }
+  // Vercel-da ishlayotgan bo'lsangiz
+  // Bu "/api" vercel.json dagi rewrite orqali backend/server.js ga boradi
   return '/api';
 }
 
 const API_BASE = getApiBase();
-const IMG_SERVER = (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000'
-  : '';
 
+const IMG_SERVER = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : ''; // Bo'sh qoldiring, chunki rasm so'rovi ham o'z domeningizga boradi
 const api = {
   async request(method, endpoint, data = null, isFormData = false) {
     const token = localStorage.getItem('token');
