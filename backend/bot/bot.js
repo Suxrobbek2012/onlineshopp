@@ -1,6 +1,4 @@
 const { Telegraf, Markup } = require('telegraf');
-const https = require('https');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const User    = require('../models/User');
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
@@ -61,66 +59,18 @@ function priceFmt(p){
   return p.discount>0?`$${(p.price*(1-p.discount/100)).toFixed(2)} (-${p.discount}%)`:`$${p.price.toFixed(2)}`;
 }
 
-// ── Proxy orqali ulanish ─────────────────────────────────────
-const FREE_PROXIES = [
-  'http://103.149.162.195:80',
-  'http://185.162.231.106:80',
-  'http://20.206.106.192:80',
-  'http://51.79.50.31:9300',
-  'http://47.74.152.29:8888',
-];
-
-function testConn(token, proxyUrl) {
-  return new Promise((resolve) => {
-    const opts = { timeout: 5000 };
-    if (proxyUrl) opts.agent = new HttpsProxyAgent(proxyUrl);
-    const req = https.get(`https://api.telegram.org/bot${token}/getMe`, opts, (res) => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d).ok === true); } catch { resolve(false); } });
-    });
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => { req.destroy(); resolve(false); });
-  });
-}
-
-async function findProxy(token) {
-  if (await testConn(token, null)) return null; // to'g'ridan ishlaydi
-  for (const p of FREE_PROXIES) {
-    if (await testConn(token, p)) return p;
-  }
-  return false;
-}
-
 // ── Internet tekshirish va botni ishga tushirish ──────────────
 exports.initBot = async () => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || token.includes('your_telegram')) {
-    console.log('⚠️  Bot token yo\'q — bot o\'chirildi');
+    console.log('Bot token yo\'q');
     return null;
   }
-
-  console.log('🔍 Telegram API tekshirilmoqda...');
-  const proxy = await findProxy(token);
-
-  if (proxy === false) {
-    console.log('⚠️  Telegram API ga ulanib bo\'lmadi. Bot o\'chirildi, sayt ishlayveradi.');
-    setBot(null);
-    return null;
-  }
-
-  if (proxy) console.log(`🌐 Proxy orqali ulandi: ${proxy}`);
-  else console.log('🌐 To\'g\'ridan ulandi');
-
-  startBot(token, proxy);
+  startBot(token);
 };
 
-function startBot(token, proxyUrl) {
-  const botOpts = { handlerTimeout: 90000 };
-  if (proxyUrl) {
-    botOpts.telegram = { agent: new HttpsProxyAgent(proxyUrl) };
-  }
-  bot = new Telegraf(token, botOpts);
+function startBot(token) {
+  bot = new Telegraf(token, { handlerTimeout: 90000 });
   setBot(bot);
   bot.catch((err) => console.error('Bot xato:', err.message));
 
