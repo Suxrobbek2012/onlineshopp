@@ -1,4 +1,7 @@
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+// dotenv faqat local uchun — Vercel da env vars o'zi inject qiladi
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -75,9 +78,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-  // Init Telegram bot only for the standalone server process.
-  initBot();
+  if (process.env.NODE_ENV !== 'production') {
+    initBot();
+  }
 }
 
 module.exports = app;
