@@ -20,9 +20,15 @@ app.use(async (req, res, next) => {
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' }, crossOriginEmbedderPolicy: false }));
 app.use(cors({ origin: true, credentials: true }));
 
-app.use('/api/', rateLimit({ windowMs: 15*60*1000, max: 300, standardHeaders: true, legacyHeaders: false }));
-app.use('/api/auth/login',    rateLimit({ windowMs: 15*60*1000, max: 20 }));
-app.use('/api/auth/register', rateLimit({ windowMs: 15*60*1000, max: 20 }));
+app.set('trust proxy', 1); // Vercel proxy uchun
+
+app.use('/api/', rateLimit({
+  windowMs: 15*60*1000, max: 300,
+  standardHeaders: true, legacyHeaders: false,
+  keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0] || req.ip
+}));
+app.use('/api/auth/login',    rateLimit({ windowMs: 15*60*1000, max: 20, keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0] || req.ip }));
+app.use('/api/auth/register', rateLimit({ windowMs: 15*60*1000, max: 20, keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0] || req.ip }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
