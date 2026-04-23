@@ -43,7 +43,12 @@ exports.getNewsById = async (req, res) => {
 exports.createNews = async (req, res) => {
   try {
     const data = { ...req.body, author: req.user._id };
-    if (req.file) data.image = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      data.image = `data:${req.file.mimetype};base64,${b64}`;
+    } else if (req.body.imageUrl) {
+      data.image = req.body.imageUrl;
+    }
     const article = await News.create(data);
     res.status(201).json({ success: true, article });
   } catch (err) {
@@ -55,7 +60,12 @@ exports.createNews = async (req, res) => {
 exports.updateNews = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (req.file) data.image = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      data.image = `data:${req.file.mimetype};base64,${b64}`;
+    } else if (req.body.imageUrl) {
+      data.image = req.body.imageUrl;
+    }
     const article = await News.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
     if (!article) return res.status(404).json({ success: false, message: 'Article not found' });
     res.json({ success: true, article });

@@ -90,8 +90,12 @@ exports.getProduct = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const data = buildProductPayload(req.body);
-    if (req.file) data.image = `/uploads/${req.file.filename}`;
-    else if (req.body.imageUrl) data.image = req.body.imageUrl;
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      data.image = `data:${req.file.mimetype};base64,${b64}`;
+    } else if (req.body.imageUrl) {
+      data.image = req.body.imageUrl;
+    }
     const product = await Product.create(data);
     res.status(201).json({ success: true, product });
   } catch (err) {
@@ -103,8 +107,12 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const data = buildProductPayload(req.body);
-    if (req.file) data.image = `/uploads/${req.file.filename}`;
-    else if (req.body.imageUrl) data.image = req.body.imageUrl;
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      data.image = `data:${req.file.mimetype};base64,${b64}`;
+    } else if (req.body.imageUrl) {
+      data.image = req.body.imageUrl;
+    }
     const product = await Product.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     res.json({ success: true, product });

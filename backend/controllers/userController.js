@@ -38,7 +38,10 @@ exports.updateUser = async (req, res) => {
     const { fullName, username, phone, countryCode, age, email, newPassword } = req.body;
     const updateData = { fullName, username, phone, countryCode, age, email };
 
-    if (req.file) updateData.avatar = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      updateData.avatar = `data:${req.file.mimetype};base64,${b64}`;
+    }
     if (newPassword) updateData.password = await bcrypt.hash(newPassword, 12);
 
     Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
