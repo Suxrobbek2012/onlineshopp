@@ -196,9 +196,10 @@
   document.getElementById('product-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var id = document.getElementById('product-id').value;
-    var stockVal = parseInt(document.getElementById('p-stock').value) || 0;
+    var stockVal = parseInt(document.getElementById('p-stock').value, 10);
+    if (isNaN(stockVal) || stockVal < 0) stockVal = 0;
     var priceVal = parseFloat(document.getElementById('p-price').value) || 0;
-    var discountVal = parseInt(document.getElementById('p-discount').value) || 0;
+    var discountVal = parseInt(document.getElementById('p-discount').value, 10) || 0;
 
     // Rasm fayli bormi?
     var imgFile = document.getElementById('p-image').files[0];
