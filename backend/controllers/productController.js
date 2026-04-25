@@ -18,7 +18,9 @@ const buildProductPayload = (body) => {
   }
 
   Object.keys(data).forEach((key) => {
-    if (data[key] === '' || data[key] === undefined) delete data[key];
+    if (data[key] === undefined) delete data[key];
+    // Bo'sh string — faqat raqam bo'lmagan fieldlar uchun o'chir
+    if (data[key] === '' && !['price','discount','stock','rating','reviewCount'].includes(key)) delete data[key];
   });
 
   return data;
