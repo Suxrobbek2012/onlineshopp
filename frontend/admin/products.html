@@ -196,27 +196,51 @@
   document.getElementById('product-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var id = document.getElementById('product-id').value;
-    var fd = new FormData();
-    fd.append('name', document.getElementById('p-name').value);
-    fd.append('category', document.getElementById('p-category').value);
-    fd.append('description', document.getElementById('p-description').value);
-    fd.append('price', document.getElementById('p-price').value);
-    fd.append('discount', document.getElementById('p-discount').value);
-    fd.append('stock', document.getElementById('p-stock').value);
-    fd.append('isFeatured', document.getElementById('p-featured').checked);
-    fd.append('isOnSale', document.getElementById('p-sale').checked);
-    // URL image
-    var imgUrl = document.getElementById('p-image-url').value.trim();
-    if (imgUrl) fd.append('imageUrl', imgUrl);
-    // File image
+    var stockVal = parseInt(document.getElementById('p-stock').value) || 0;
+    var priceVal = parseFloat(document.getElementById('p-price').value) || 0;
+    var discountVal = parseInt(document.getElementById('p-discount').value) || 0;
+
+    // Rasm fayli bormi?
     var imgFile = document.getElementById('p-image').files[0];
-    if (imgFile) fd.append('image', imgFile);
-    try {
-      if (id) { await api.putForm('/products/' + id, fd); Toast.success('Yangilandi!'); }
-      else { await api.postForm('/products', fd); Toast.success('Qo\'shildi!'); }
-      document.getElementById('product-form-wrap').style.display = 'none';
-      loadProducts(currentPage);
-    } catch(e) { Toast.error(e.message); }
+    var imgUrl = document.getElementById('p-image-url').value.trim();
+
+    if (imgFile) {
+      // Fayl bor — FormData ishlatamiz
+      var fd = new FormData();
+      fd.append('name', document.getElementById('p-name').value);
+      fd.append('category', document.getElementById('p-category').value);
+      fd.append('description', document.getElementById('p-description').value);
+      fd.append('price', priceVal);
+      fd.append('discount', discountVal);
+      fd.append('stock', stockVal);
+      fd.append('isFeatured', document.getElementById('p-featured').checked);
+      fd.append('isOnSale', document.getElementById('p-sale').checked);
+      fd.append('image', imgFile);
+      try {
+        if (id) { await api.putForm('/products/' + id, fd); Toast.success('Yangilandi!'); }
+        else { await api.postForm('/products', fd); Toast.success('Qo\'shildi!'); }
+      } catch(e) { Toast.error(e.message); return; }
+    } else {
+      // Fayl yo'q — JSON yuboramiz (ishonchli)
+      var payload = {
+        name: document.getElementById('p-name').value,
+        category: document.getElementById('p-category').value,
+        description: document.getElementById('p-description').value,
+        price: priceVal,
+        discount: discountVal,
+        stock: stockVal,
+        isFeatured: document.getElementById('p-featured').checked,
+        isOnSale: document.getElementById('p-sale').checked,
+      };
+      if (imgUrl) payload.imageUrl = imgUrl;
+      try {
+        if (id) { await api.put('/products/' + id, payload); Toast.success('Yangilandi!'); }
+        else { await api.post('/products', payload); Toast.success('Qo\'shildi!'); }
+      } catch(e) { Toast.error(e.message); return; }
+    }
+
+    document.getElementById('product-form-wrap').style.display = 'none';
+    loadProducts(currentPage);
   });
 </script>
 </body>
