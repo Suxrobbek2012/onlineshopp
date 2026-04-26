@@ -25,21 +25,22 @@ exports.placeOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
-    const missingProducts = cart.items.filter((item) => !item.product);
-    if (missingProducts.length) {
-      return res.status(400).json({ success: false, message: 'Cart contains unavailable products' });
+    // O'chirilgan mahsulotlarni savatchadan tozala
+    const validItems = cart.items.filter(item => item.product && item.product._id);
+    if (validItems.length !== cart.items.length) {
+      cart.items = validItems;
+      await cart.save();
+    }
+    if (validItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
-    for (const item of cart.items) {
-      if (item.quantity > item.product.stock) {
-        return res.status(400).json({
-          success: false,
-          message: `${item.product.name} does not have enough stock`
-        });
-      }
-    }
+    // Stock tekshiruvi (ixtiyoriy — stock 0 bo'lsa ham buyurtma qabul qilinadi)
+    // for (const item of validItems) {
+    //   if (item.quantity > item.product.stock) { ... }
+    // }
 
-    const items = cart.items.map((item) => ({
+    const items = validItems.map((item) => ({
       product: item.product._id,
       name: item.product.name,
       image: item.product.image,
