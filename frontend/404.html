@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Sahifa topilmadi | SHOP</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .error-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+    .error-code { font-size: 8rem; font-weight: 900; background: var(--grad-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+    .error-title { font-size: 1.8rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+    .error-sub { color: var(--text-muted); margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <div class="error-page">
+    <div>
+      <div class="error-code">404</div>
+      <div class="error-title">Sahifa topilmadi</div>
+      <p class="error-sub">Siz qidirayotgan sahifa mavjud emas yoki ko'chirilgan.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="index.html" class="btn btn-primary btn-lg">Bosh sahifaga qaytish</a>
+        <a href="shop.html" class="btn btn-secondary btn-lg">Do'konga o'tish</a>
+      </div>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>Theme.init(); I18N.init().then(function(){ Auth.updateNavbar(); });</script>
+</body>
+</html>

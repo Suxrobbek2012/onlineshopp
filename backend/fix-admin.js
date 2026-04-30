@@ -1,24 +1,26 @@
+// Admin parolini yangilash uchun script
+// Ishlatish: node fix-admin.js <yangi_parol>
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const User = require('./models/User');
 
-mongoose.connect(process.env.MONGODB_URI).then(async () => {
-  const result = await User.updateOne(
-    { username: 'admin' },
-    { isBanned: false, role: 'admin' }
-  );
-  console.log('Admin fixed:', result.modifiedCount ? 'OK' : 'not found');
+const newPassword = process.argv[2] || 'admin123';
 
-  // Agar admin yo'q bo'lsa yaratamiz
-  const admin = await User.findOne({ username: 'admin' });
+mongoose.connect(process.env.MONGODB_URI).then(async () => {
+  let admin = await User.findOne({ username: 'admin' });
   if (!admin) {
-    await User.create({
+    admin = await User.create({
       fullName: 'Admin', username: 'admin', phone: '9001234567',
-      countryCode: '+998', password: 'admin123', age: 30, role: 'admin', isBanned: false
+      countryCode: '+998', password: newPassword, age: 30,
+      role: 'admin', isBanned: false
     });
-    console.log('Admin created: admin / admin123');
+    console.log('Admin yaratildi:', admin.username, '| parol:', newPassword);
   } else {
-    console.log('Admin status:', admin.role, '| banned:', admin.isBanned);
+    admin.password = newPassword;
+    admin.isBanned = false;
+    admin.role = 'admin';
+    await admin.save();
+    console.log('Admin yangilandi:', admin.username, '| parol:', newPassword);
   }
   process.exit(0);
 }).catch(e => { console.error(e.message); process.exit(1); });

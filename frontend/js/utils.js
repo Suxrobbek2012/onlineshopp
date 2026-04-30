@@ -100,7 +100,11 @@ var IMG_BASE = (window.location.hostname==='localhost'||window.location.hostname
 
 function getImageUrl(path) {
   if (!path) return '';
+  // External URL (http/https)
   if (String(path).startsWith('http')) return path;
+  // Base64 data URL
+  if (String(path).startsWith('data:')) return path;
+  // Local path
   return IMG_BASE + path;
 }
 
